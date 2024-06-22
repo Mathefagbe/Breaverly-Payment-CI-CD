@@ -5,7 +5,7 @@ from drf_yasg.utils import swagger_auto_schema
 from .serializer import (UserRegistrationWriteSerializer,EmailVerificationSerializer,TokenObtainSerializer,VerifiyOtpSerializer,PasswordResetSerializer)
 from rest_framework.response import Response
 from rest_framework import status
-from .helper import get_user_token,sendUserEmailVerification
+from .helper import get_user_token
 from rest_framework_simplejwt.views import (TokenRefreshView,TokenBlacklistView,TokenObtainPairView)
 from .models import Otp
 from django.utils import timezone
