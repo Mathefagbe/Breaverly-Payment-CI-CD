@@ -1,8 +1,6 @@
 from django.shortcuts import render
 from pprint import pprint
 from beaverly_api.serializer import (
-
-    KycImageWriteSerializer,
     KycImageReadSerializer,
     KycDetailReadSerializer,
     KycDetailWriteSerializer,
@@ -26,6 +24,7 @@ from beaverly_api import permissions as app_permissions
 
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
+
 
 class UploadedKycPhotoApiView(APIView):
     parser_classes=[JSONParser,FormParser,MultiPartParser]
@@ -98,8 +97,36 @@ class AdminUpdateUploadedKycPhotoApiView(APIView):
             kycphoto.save()
             res={
                 "status":"success",
-                "data":"Kyc Status Updated Successfully",
-                "message":"Kyc Status Updated Successfully"
+                "data":"Kyc Status verified Successfully",
+                "message":"Kyc Status verified Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+class AdminUnVerifyUploadedKycPhotoApiView(APIView):
+    def put(self,request,id):
+        try:
+            #check Permission
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            kycphoto=KycDocumentImage.objects.select_related("user").get(pk=id)
+            kycphoto.has_verified=False
+            kycphoto.save()
+            res={
+                "status":"success",
+                "data":"Kyc Status Unverifed Successfully",
+                "message":"Kyc Status Unverifed Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
@@ -182,8 +209,8 @@ class AdminUpdateUploadedKycSelfieApiView(APIView):
             kycphoto.save()
             res={
                 "status":"success",
-                "data":"Kyc Status Updated Successfully",
-                "message":"Kyc Status Updated Successfully"
+                "data":"Kyc Status verified Successfully",
+                "message":"Kyc Status verified Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
@@ -194,6 +221,34 @@ class AdminUpdateUploadedKycSelfieApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
+class AdminUnverifyUploadedKycSelfieApiView(APIView):
+    def put(self,request,id):
+        try:
+            #check Permission
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            kycphoto=KycSelfie.objects.select_related("user").get(pk=id)
+            kycphoto.has_verified=False
+            kycphoto.save()
+            res={
+                "status":"success",
+                "data":"Kyc Status Unverified Successfully",
+                "message":"Kyc Status Unverified Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
 
 class UploadedKycHoldingPhotoApiView(APIView):
     parser_classes=[JSONParser,FormParser,MultiPartParser]
@@ -266,8 +321,36 @@ class AdminUpdateUploadedLivePhotoKycApiView(APIView):
             kycphoto.save()
             res={
                 "status":"success",
-                "data":"Kyc Status Updated Successfully",
-                "message":"Kyc Status Updated Successfully"
+                "data":"Kyc Status Verified Successfully",
+                "message":"Kyc Status Verified Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class AdminUnVerifiedUploadedLivePhotoKycApiView(APIView):
+    def put(self,request,id):
+        try:
+            #check Permission
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            kycphoto=LivePhotoKyc.objects.select_related("user").get(pk=id)
+            kycphoto.has_verified=False
+            kycphoto.save()
+            res={
+                "status":"success",
+                "data":"Kyc Status Unverified Successfully",
+                "message":"Kyc Status Unverified Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
@@ -350,8 +433,8 @@ class AdminUpdateUploadedKycUtilityBillApiView(APIView):
             kycphoto.save()
             res={
                 "status":"success",
-                "data":"Kyc Status Updated Successfully",
-                "message":"Kyc Status Updated Successfully"
+                "data":"Kyc Status verified Successfully",
+                "message":"Kyc Status verifed Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
@@ -362,6 +445,34 @@ class AdminUpdateUploadedKycUtilityBillApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
+class AdminUnverifiedUploadedKycUtilityBillApiView(APIView):
+    def put(self,request,id):
+        try:
+            #check Permission
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            kycphoto=KycUtilityBills.objects.select_related("user").get(pk=id)
+            kycphoto.has_verified=False
+            kycphoto.save()
+            res={
+                "status":"success",
+                "data":"Kyc Status unverified Successfully",
+                "message":"Kyc Status unverifed Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
 
 class KycFormDetalsApiView(APIView):
     '''

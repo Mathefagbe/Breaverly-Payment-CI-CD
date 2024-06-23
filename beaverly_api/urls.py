@@ -18,7 +18,15 @@ from beaverly_api.view.kyc import (
     UploadedKycSelfieApiView,
     UploadedKycUtilityBillApiView,
     KycVerificationUploadedStepApiView,
-    KycFormDetalsApiView
+    KycFormDetalsApiView,
+    AdminUnverifiedUploadedKycUtilityBillApiView,
+    AdminUnVerifiedUploadedLivePhotoKycApiView,
+    AdminUnVerifyUploadedKycPhotoApiView,
+    AdminUnverifyUploadedKycSelfieApiView
+)
+from beaverly_api.view.deposit import (
+    DepositApiView,
+    UserTransactionHistory
 )
 urlpatterns = [
     url("user/profile/",EditProfileApiView.as_view()),
@@ -42,8 +50,20 @@ urlpatterns = [
     url("admin/verify/kyc/holding_id/card/<int:id>/",AdminUpdateUploadedLivePhotoKycApiView.as_view()),
     url("admin/verify/kyc/utility/<int:id>/",AdminUpdateUploadedKycUtilityBillApiView.as_view()),
 
+    url("admin/unverify/kyc/photo/<int:id>/",AdminUnVerifyUploadedKycPhotoApiView.as_view()),
+    url("admin/unverify/kyc/selfie/<int:id>/",AdminUnverifyUploadedKycSelfieApiView.as_view()),
+    url("admin/unverify/kyc/holding_id/card/<int:id>/",AdminUnVerifiedUploadedLivePhotoKycApiView.as_view()),
+    url("admin/unverify/kyc/utility/<int:id>/",AdminUnverifiedUploadedKycUtilityBillApiView.as_view()),
+
+
+
     url("kyc/",KycVerificationUploadedStepApiView.as_view()),
-    url("kyc/fill/form/",KycFormDetalsApiView.as_view())
+    url("kyc/fill/form/",KycFormDetalsApiView.as_view()),
 
     #------------------KYC FINISHED-------------------------------
+
+    #---------------TRANSACTION HISTORY AND DEPOSIT------------------
+
+    url("deposit/",DepositApiView.as_view()),
+    url("transaction/history/",UserTransactionHistory.as_view())
 ]

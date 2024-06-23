@@ -2,8 +2,12 @@ from django.db import models
 import re
 from django.conf import settings
 from account.constant import SPECIAL_CHARS_REGEX
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator,MaxValueValidator,MinValueValidator
 import uuid
+from .constant import( 
+    ACCOUNT_STATUSES,CURRENCY,WITHDRAWAL_STATUS,
+    TRANSACTION_TYPE,ACCOUNT_TYPE,GATEWAY)
+
 phone_validator = RegexValidator(
     r"^(\+?\d{0,4})?\s?-?\s?(\(?\d{3}\)?)\s?-?\s?(\(?\d{3}\)?)\s?-?\s?(\(?\d{4}\)?)?$",
     "The phone number provided is invalid",
@@ -94,4 +98,105 @@ class KycDetails(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
+#Accounts
+class LowRiskAccount(models.Model):
+    id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
+    customer_code=models.CharField(max_length=100,null=False,unique=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="lowrisk_users")
+    balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
+    account_status = models.CharField(max_length=10, choices=ACCOUNT_STATUSES,default="ACTIVE")
+    currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    
 
+    @property
+    def kyc_status(self):
+        pass
+
+    @property
+    def networth_balance(self):
+        pass
+
+class SmartProAccount(models.Model):
+    id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
+    customer_code=models.CharField(max_length=100,null=True,unique=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="smartpro_users")
+    balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
+    account_status = models.CharField(max_length=10, choices=ACCOUNT_STATUSES,default="ACTIVE")
+    currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+
+
+    @property
+    def kyc_status(self):
+        pass
+
+    @property
+    def networth_balance(self):
+        pass
+#widthdrawals
+#when withdrawal is settle admin will delete that pending withdrawal
+#when a user has money in pending he can withdrawal money from is balance
+class PendingWithdrawals(models.Model):
+    id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
+    customer_code=models.CharField(max_length=100,null=True,unique=False)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="pending_widthdrawal")
+    balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
+    currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
+    status=models.CharField(max_length=20,default="pending",choices=WITHDRAWAL_STATUS)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+
+
+#to put money in withdrawal balance u have to sell portfolio
+#this will be automated from my code with 0.98% fee
+class Withdrawals(models.Model):
+    id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
+    customer_code=models.CharField(max_length=100,null=True,unique=False)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="widthdrawal")
+    balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
+    currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+
+
+#transaction History
+class TransactionHistory(models.Model):
+    def upload_to(instance, filename):
+        url = re.sub(
+            SPECIAL_CHARS_REGEX,
+            "_",
+            "transaction/receipt/{filename}".format(filename=instance.user.first_name),
+        )
+        return url
+    id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
+    transaction_id=models.CharField(db_index=True,null=True,max_length=20)
+    receipt=models.FileField(upload_to=upload_to,null=True,blank=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="user_transactions")
+    account_type=models.CharField(default="low_risk",max_length=30,choices=ACCOUNT_TYPE)
+    transaction_type=models.CharField(default="deposit",max_length=30,choices=TRANSACTION_TYPE)
+    status=models.CharField(max_length=20,default="pending",choices=WITHDRAWAL_STATUS)
+    amount=models.DecimalField(max_digits=20,decimal_places=2,default=0.00)
+    currency=models.CharField(choices=CURRENCY,default="NG",max_length=20)
+    payment_gateway=models.CharField(choices=GATEWAY,max_length=20,null=True)
+    deposit_percentage=models.FloatField(default=0.1,validators=[MinValueValidator(0.1),MaxValueValidator(1.0)])
+    inital_deposit=models.DecimalField(max_digits=20,decimal_places=2,default=0.00)
+    pay_off_amount=models.DecimalField(max_digits=20,decimal_places=2,default=0.00)
+    leaverage_duration=models.IntegerField(null=True)
+    transaction_fee=models.FloatField(null=True,validators=[MinValueValidator(0),MaxValueValidator(100.0)])
+    expire_date=models.DateField(null=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+
+
+    @property
+    def holding_schedule(self):
+        if self.leaverage_duration:
+            return "{} months - {}% Transaction Fee".format(self.leaverage_duration,self.transaction_fee)
+        return None
+
+
+# class EarningHistory(models.Model):
+#     pass

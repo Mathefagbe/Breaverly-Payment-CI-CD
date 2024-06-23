@@ -1,6 +1,11 @@
+import io
+import PyPDF2
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import (KycDetails,KycDocumentImage,KycSelfie,KycUtilityBills,LivePhotoKyc)
+from .models import (KycDetails,KycDocumentImage,KycSelfie,
+                     KycUtilityBills,LivePhotoKyc,
+                     LowRiskAccount,TransactionHistory
+                     )
 from drf_extra_fields.fields import Base64ImageField,Base64FileField
 
 class Base64ImagesField(Base64ImageField):
@@ -24,13 +29,13 @@ class PDFBase64FileField(Base64FileField):
         }
 
     def get_file_extension(self, filename, decoded_file):
-        pass
-        # try:
-        #     PyPDF2.PdfFileReader(io.BytesIO(decoded_file))
-        # except PyPDF2.utils.PdfReadError as e:
-        #     logger.warning(e)
-        # else:
-        #     return 'pdf'
+        try:
+            PyPDF2.PdfFileReader(io.BytesIO(decoded_file))
+        except PyPDF2.utils.PdfReadError as e:
+            # logger.warning(e)
+            raise serializers.ValidationError(e)
+        else:
+            return 'pdf'
 
 
 class UserReadSerializer(serializers.ModelSerializer):
@@ -123,9 +128,56 @@ class KycSelfieReadSerializer(serializers.ModelSerializer):
         model=KycSelfie
         fields="__all__"
 
-class KycImageWriteSerializer(serializers.ModelSerializer):
+class TransactionWriteSerializer(serializers.ModelSerializer):
+    receipt=PDFBase64FileField(required=False)
     class Meta:
-        model=KycDocumentImage
+        model=TransactionHistory
         fields=[
-            "image"
+            "receipt",
+            "account_type",
+            "transaction_type",
+            "amount",
+            "currency",
+            "payment_gateway"
         ]
+        extra_kwargs={
+            "account_type":{
+                "required":True
+            },
+            "transaction_type":{
+                "required":True
+            },
+            "amount":{
+                "required":True
+            },
+        }
+
+
+    def validate(self, attrs):
+        if attrs["payment_gateway"].lower() == "bank_transfer":
+            raise RuntimeError("Please Upload Your Desposit Receipt")
+        return super().validate(attrs)
+
+
+class UserReadTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=get_user_model()
+        fields=[
+            "first_name",
+            "last_name",
+            "email",
+            "middle_name",
+            "phone_number",
+            "image",
+            "account_name",
+            "bank_name",
+            "account_number",
+        ]
+
+class TransactionReadSerializer(serializers.ModelSerializer):
+    user=UserReadTransactionSerializer()
+    class Meta:
+        model=TransactionHistory
+        fields="__all__"
+        depth=1
+   
