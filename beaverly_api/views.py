@@ -1,3 +1,96 @@
 from django.shortcuts import render
+from .serializer import (
+    EditProfileSerializer,
+    PersonalDetailSerializer,
+    WithdrawalDetailSerializer,
 
-# Create your views here.
+)
+from itertools import chain
+from rest_framework.views import APIView
+from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
+from rest_framework.response import Response
+from rest_framework import status
+from drf_yasg.utils import swagger_auto_schema
+
+
+INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
+PERMISSION_MESSAGE="PERMISSION DENIED"
+
+class EditProfileApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
+
+    def get(self,request):
+        try:
+            data=EditProfileSerializer(request.user).data
+            res={
+                "status":"success",
+                "data":data,
+                "message":"User profile fetch successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+    @swagger_auto_schema(
+        request_body=EditProfileSerializer
+    )
+    def put(self,request):
+        try:
+            serializer=EditProfileSerializer(instance=request.user,data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            res={
+                "status":"success",
+                "data":None,
+                "message":"User Profile Updated Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+class PersonalDetailApiView(APIView):
+    def get(self,request):
+        try:
+            data=PersonalDetailSerializer(request.user).data
+            res={
+                "status":"success",
+                "data":data,
+                "message":"Personal details fetch successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+class WithdrawalDetailApiView(APIView):
+    def get(self,request):
+        try:
+            data=WithdrawalDetailSerializer(request.user).data
+            res={
+                "status":"success",
+                "data":data,
+                "message":"withdrawal details fetch successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        

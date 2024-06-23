@@ -69,3 +69,4 @@ class PasswordResetSerializer(serializers.Serializer):
         if attrs["password"] == attrs["confirm_password"]:
             return super().validate(attrs)
         raise RuntimeError("Password does not match, Pleas re-enter password")
+    

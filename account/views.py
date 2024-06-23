@@ -2,17 +2,18 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 # Create your views here.
 from drf_yasg.utils import swagger_auto_schema
-from .serializer import (UserRegistrationWriteSerializer,EmailVerificationSerializer,TokenObtainSerializer,VerifiyOtpSerializer,PasswordResetSerializer)
+from .serializer import (UserRegistrationWriteSerializer,EmailVerificationSerializer,TokenObtainSerializer,
+                         VerifiyOtpSerializer,PasswordResetSerializer,)
 from rest_framework.response import Response
 from rest_framework import status
 from .helper import get_user_token
-from rest_framework_simplejwt.views import (TokenRefreshView,TokenBlacklistView,TokenObtainPairView)
+from rest_framework_simplejwt.views import (TokenObtainPairView)
 from .models import Otp
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 import string
 from django.utils.crypto import get_random_string
-
+from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 
 class UserRegistrationView(APIView):
     authentication_classes=[]
@@ -172,6 +173,5 @@ class VerifyOtpCodeAPiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
-
 
 

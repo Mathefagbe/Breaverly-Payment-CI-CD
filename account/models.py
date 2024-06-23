@@ -9,6 +9,8 @@ from django.utils.translation import gettext_lazy as _
 from account.constant import OTP_TYPE
 from .constant import SPECIAL_CHARS_REGEX
 import re
+from datetime import datetime
+import uuid
 
 def generatedTime():
      return timezone.now() + timezone.timedelta(minutes=2)
@@ -77,27 +79,49 @@ class User(AbstractUser):
         )
         return url
     username=None
+    id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
     confirm_password=models.CharField(max_length=100,null=False,blank=False)
-    email = models.EmailField(_('email address'), blank=True,unique=True)
+    email = models.EmailField(_('email address'), blank=True,unique=True,db_index=True)
     middle_name=models.CharField(max_length=100,null=True,blank=True)
     phone_number=models.CharField(max_length=13,null=True,blank=True)
     image=models.ImageField(upload_to=upload_to,null=True,blank=True)
     account_name=models.CharField(max_length=100,null=True,blank=True)
     bank_name=models.CharField(max_length=100,null=True,blank=True)
+    has_verified_email=models.BooleanField(default=False)
     account_number=models.CharField(max_length=15,null=True,blank=True)
     created_at=models.DateField(auto_now=True)
+    registation_date=models.DateField(auto_now=datetime.now().date)
     objects=CustomUserManager()
 
     USERNAME_FIELD="email"
     REQUIRED_FIELDS=[]
 
+    @property
+    def full_name(self):
+        return self.get_full_name()
+    
+
+    def has_verfied_kyc(self):
+        pass
+
+    def kyc_verification_steps(self):
+        pass
+        #check if the user has uploaded his detail
+        #check if id,selfie,document,holdingIDcard
+
+    def get_user_permissions(self):
+        pass
+
 class Otp(models.Model):
     otp=models.CharField(max_length=4,null=False,blank=False)
-    email=models.CharField(max_length=200,null=True,blank=False)
+    email=models.CharField(max_length=200,null=True,blank=False,db_index=True)
     otp_type=models.CharField(choices=OTP_TYPE,max_length=20,null=False)
     created_at=models.DateTimeField(auto_now_add=True)
     expire_at=models.DateTimeField(default=generatedTime)
 
     # objects=OTPManager()
+
+class Bank(models.Model):
+    name=models.CharField(max_length=200,null=False,blank=False)
 
 
