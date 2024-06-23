@@ -1,8 +1,8 @@
 from django.shortcuts import render
+from pprint import pprint
 from beaverly_api.serializer import (
-    EditProfileSerializer,
-    PersonalDetailSerializer,
-    WithdrawalDetailSerializer,
+
+    KycImageWriteSerializer,
     KycImageReadSerializer,
     KycDetailReadSerializer,
     KycDetailWriteSerializer,
@@ -28,6 +28,7 @@ INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
 
 class UploadedKycPhotoApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
             request_body=ImageUploadSerializer
     )
@@ -37,12 +38,9 @@ class UploadedKycPhotoApiView(APIView):
             serializer.is_valid(raise_exception=True)
             
             #check if he has uploaded before
-            kycphoto=KycDocumentImage.objects.filter(user=request.user)
-            if kycphoto:
-                kycphoto.delete() #Delete the old one
-            KycDocumentImage.objects.create(
-                **serializer.validated_data,
-                user=request.user
+            details,created=KycDocumentImage.objects.update_or_create(
+                user=request.user,
+                defaults=serializer.validated_data,
             )
             res={
                 "status":"success",
@@ -72,7 +70,7 @@ class AdminGetUploadedKycPhotoApiView(APIView):
             kycphoto=KycDocumentImage.objects.select_related("user").all()
             res={
                 "status":"success",
-                "data":KycImageReadSerializer(kycphoto,many=True).data,
+                "data":KycImageReadSerializer(kycphoto,many=True,context={'request':request}).data,
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -114,6 +112,7 @@ class AdminUpdateUploadedKycPhotoApiView(APIView):
 
 
 class UploadedKycSelfieApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
             request_body=ImageUploadSerializer
     )
@@ -121,14 +120,10 @@ class UploadedKycSelfieApiView(APIView):
         try:
             serializer=ImageUploadSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            
             #check if he has uploaded before
-            kycphoto=KycSelfie.objects.filter(user=request.user)
-            if kycphoto:
-                kycphoto.delete() #Delete the old one
-            KycSelfie.objects.create(
-                **serializer.validated_data,
-                user=request.user
+            details,created=KycSelfie.objects.update_or_create(
+                user=request.user,
+                defaults=serializer.validated_data,
             )
             res={
                 "status":"success",
@@ -145,6 +140,7 @@ class UploadedKycSelfieApiView(APIView):
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
 class AdminGetUploadedKycSelfieApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     def get(self,request):
         try:
             #check Permission
@@ -158,7 +154,7 @@ class AdminGetUploadedKycSelfieApiView(APIView):
             kycphoto=KycSelfie.objects.select_related("user").all()
             res={
                 "status":"success",
-                "data":KycSelfieReadSerializer(kycphoto,many=True).data,
+                "data":KycSelfieReadSerializer(kycphoto,many=True,context={'request':request}).data,
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -200,6 +196,7 @@ class AdminUpdateUploadedKycSelfieApiView(APIView):
         
 
 class UploadedKycHoldingPhotoApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
             request_body=ImageUploadSerializer
     )
@@ -209,12 +206,9 @@ class UploadedKycHoldingPhotoApiView(APIView):
             serializer.is_valid(raise_exception=True)
             
             #check if he has uploaded before
-            kycphoto=LivePhotoKyc.objects.filter(user=request.user)
-            if kycphoto:
-                kycphoto.delete() #Delete the old one
-            LivePhotoKyc.objects.create(
-                **serializer.validated_data,
-                user=request.user
+            details,created=LivePhotoKyc.objects.update_or_create(
+                user=request.user,
+                defaults=serializer.validated_data,
             )
             res={
                 "status":"success",
@@ -244,7 +238,7 @@ class AdminGetUploadedLivePhotoKycApiView(APIView):
             kycphoto=LivePhotoKyc.objects.select_related("user").all()
             res={
                 "status":"success",
-                "data":LivePhotoKycReadSerializer(kycphoto,many=True).data,
+                "data":LivePhotoKycReadSerializer(kycphoto,many=True,context={'request':request}).data,
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -286,6 +280,7 @@ class AdminUpdateUploadedLivePhotoKycApiView(APIView):
 
 
 class UploadedKycUtilityBillApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
             request_body=UploadKycFileSerializer
     )
@@ -295,12 +290,9 @@ class UploadedKycUtilityBillApiView(APIView):
             serializer.is_valid(raise_exception=True)
             
             #check if he has uploaded before
-            kycphoto=KycUtilityBills.objects.filter(user=request.user)
-            if kycphoto:
-                kycphoto.delete() #Delete the old one
-            KycUtilityBills.objects.create(
-                **serializer.validated_data,
-                user=request.user
+            details,created=KycUtilityBills.objects.update_or_create(
+                user=request.user,
+                defaults=serializer.validated_data,
             )
             res={
                 "status":"success",
@@ -330,7 +322,7 @@ class AdminGetUploadedKycUtilityBillApiView(APIView):
             kycphoto=KycUtilityBills.objects.select_related("user").all()
             res={
                 "status":"success",
-                "data":KycUtilityBillsReadSerializer(kycphoto,many=True).data,
+                "data":KycUtilityBillsReadSerializer(kycphoto,many=True,context={'request':request}).data,
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -372,6 +364,9 @@ class AdminUpdateUploadedKycUtilityBillApiView(APIView):
 
 
 class KycFormDetalsApiView(APIView):
+    '''
+    Kyc Details can be created or edited with this endpoint
+    '''
     @swagger_auto_schema(
            request_body=KycDetailWriteSerializer 
     )
@@ -379,11 +374,32 @@ class KycFormDetalsApiView(APIView):
         try:
             serializer=KycDetailWriteSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            data=serializer.save(user=request)
+            #In case of Update Check if he has before then delete and create again
+            details,created=KycDetails.objects.update_or_create(
+                user=request.user,
+                defaults=serializer.validated_data,
+            )
             res={
                 "status":"success",
-                "data":KycDetailReadSerializer(data).data,
+                "data":None,
                 "message":"Kyc Details Uploaded Successfull"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+    def get(self,request):
+        try:
+            data=KycDetails.objects.filter(user=request.user).first()
+            res={
+                "status":"success",
+                "data":KycDetailReadSerializer(data,context={'request':request}).data,
+                "message":"Kyc Details fetched Successfull"
             }
             return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
@@ -408,20 +424,22 @@ class KycVerificationUploadedStepApiView(APIView):
 
             data=[]
             
-            photo_data=ImageUploadSerializer(photo_verification).data
-            photo_data["step"]="1"
+            photo_data=KycImageReadSerializer(photo_verification,context={'request':request}).data
+            photo_data["step"]="Photo"
+            data.append(photo_data)
 
-            selfie_data=ImageUploadSerializer(selfie_verification).data
-            selfie_data["step"]="2"
+            selfie_data=KycSelfieReadSerializer(selfie_verification,context={'request':request}).data
+            selfie_data["step"]="Selfie"
+            data.append(selfie_data)
 
-            holding_data=ImageUploadSerializer(holding_photo_verification).data
-            holding_data["step"]="3"
+            holding_data=LivePhotoKycReadSerializer(holding_photo_verification,context={'request':request}).data
+            holding_data["step"]="Holding_photo"
+            data.append(holding_data)
 
-            utility_data=UploadKycFileSerializer(utility_bill_verification).data
-            utility_data["step"]="5"
-
-            data=data.extend(list(chain(photo_data,selfie_data,holding_data,utility_data)))
-
+            utility_data=KycUtilityBillsReadSerializer(utility_bill_verification,context={'request':request}).data
+            utility_data["step"]="Utility Bill"
+            data.append(utility_data)
+           
             res={
                 "status":"success",
                 "data":data,

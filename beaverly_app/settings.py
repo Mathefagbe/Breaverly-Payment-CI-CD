@@ -220,6 +220,7 @@ MEDIA_URL="/media/"
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 CORS_EXPOSE_HEADERS = [
     "auth_password",

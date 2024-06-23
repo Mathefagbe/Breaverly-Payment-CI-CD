@@ -17,7 +17,8 @@ from beaverly_api.view.kyc import (
     UploadedKycPhotoApiView,
     UploadedKycSelfieApiView,
     UploadedKycUtilityBillApiView,
-    KycVerificationUploadedStepApiView
+    KycVerificationUploadedStepApiView,
+    KycFormDetalsApiView
 )
 urlpatterns = [
     url("user/profile/",EditProfileApiView.as_view()),
@@ -41,7 +42,8 @@ urlpatterns = [
     url("admin/verify/kyc/holding_id/card/<int:id>/",AdminUpdateUploadedLivePhotoKycApiView.as_view()),
     url("admin/verify/kyc/utility/<int:id>/",AdminUpdateUploadedKycUtilityBillApiView.as_view()),
 
-    url("kyc/",KycVerificationUploadedStepApiView.as_view())
+    url("kyc/",KycVerificationUploadedStepApiView.as_view()),
+    url("kyc/fill/form/",KycFormDetalsApiView.as_view())
 
     #------------------KYC FINISHED-------------------------------
 ]

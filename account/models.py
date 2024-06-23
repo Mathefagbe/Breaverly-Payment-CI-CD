@@ -12,6 +12,8 @@ import re
 from datetime import datetime
 import uuid
 
+
+
 def generatedTime():
      return timezone.now() + timezone.timedelta(minutes=2)
 
@@ -91,6 +93,7 @@ class User(AbstractUser):
     account_number=models.CharField(max_length=15,null=True,blank=True)
     created_at=models.DateField(auto_now=True)
     registation_date=models.DateField(auto_now=datetime.now().date)
+    # role=models.ManyToManyField()
     objects=CustomUserManager()
 
     USERNAME_FIELD="email"
