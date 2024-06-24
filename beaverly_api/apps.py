@@ -8,9 +8,11 @@ class BeaverlyApiConfig(AppConfig):
     def ready(self) -> None:
         from . import signals
         from .role import add_permissions,add_role_permissions,add_roles
+        from .bank_helpers import load_banks
 
         add_roles()
         add_permissions()
         add_role_permissions()
+        load_banks()
 
         

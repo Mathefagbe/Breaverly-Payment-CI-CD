@@ -137,6 +137,7 @@ class Bank(models.Model):
     currency=models.CharField(max_length=10,null=True)
     country=models.CharField(max_length=100,null=True)
     active=models.BooleanField(default=False)
+    
 
 
 

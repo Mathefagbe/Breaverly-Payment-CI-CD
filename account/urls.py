@@ -7,11 +7,17 @@ from .views import (
                     PasswordResetApiView,
                     AdminUserRegistrationView
                     )
+from account.banks.view import (
+    GetAllBanksApiView
+)
 urlpatterns = [
     url("auth/register/",UserRegistrationView.as_view()),
     url("auth/admin/register/",AdminUserRegistrationView.as_view()),
     url("auth/login/",LoginApiView.as_view()),
     url("auth/password/reset/",PasswordResetApiView.as_view()),
     url("auth/email/verification/",EmailVerificationApiView.as_view()),
-    url("auth/otp/verification/",VerifyOtpCodeAPiView.as_view())
+    url("auth/otp/verification/",VerifyOtpCodeAPiView.as_view()),
+
+
+    url("banks/",GetAllBanksApiView.as_view())
 ]
