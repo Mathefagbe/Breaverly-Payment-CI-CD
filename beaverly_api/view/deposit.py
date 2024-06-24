@@ -3,6 +3,8 @@ from pprint import pprint
 from beaverly_api.serializer import (
     TransactionWriteSerializer,
     TransactionReadSerializer,
+    TopUpTransactionWriteSerializer,
+    LeaverageTransactionWriteSerializer
 
 )
 from itertools import chain
@@ -93,3 +95,59 @@ class AdminGetAllTransactionApiView(APIView):
             pass
         except Exception as e:
             pass
+
+class TopUpDepositApiView(APIView):
+    @swagger_auto_schema(
+            request_body=TopUpTransactionWriteSerializer
+    )
+    @transaction.atomic
+    def post(self,request):
+        try:
+            serializer=TopUpTransactionWriteSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            TransactionHistory.objects.create(
+                **serializer.validated_data,
+                user=request.user,
+                transaction_id=generate_invoice_id()
+            )
+            res={
+                "status":"Success",
+                "data":None,
+                "message":"TopUp Desposit Successful"
+            }
+            return Response(res,status=status.HTTP_201_CREATED)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class LeaverageDepositApiView(APIView):
+    @swagger_auto_schema(
+            request_body=LeaverageTransactionWriteSerializer
+    )
+    @transaction.atomic
+    def post(self,request):
+        try:
+            serializer=LeaverageTransactionWriteSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            TransactionHistory.objects.create(
+                **serializer.validated_data,
+                user=request.user,
+                transaction_id=generate_invoice_id()
+            )
+            res={
+                "status":"Success",
+                "data":None,
+                "message":"Leaverage Desposit Successful"
+            }
+            return Response(res,status=status.HTTP_201_CREATED)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)

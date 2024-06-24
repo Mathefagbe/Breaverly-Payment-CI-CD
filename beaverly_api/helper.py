@@ -1,6 +1,6 @@
 import secrets
 import string
-from .models import LowRiskAccount,SmartProAccount,TransactionHistory
+from .models import CapySafeAccount,CapyMaxAccount,TransactionHistory
 def generate_low_risk_id(length=15):
     while True:
         try:
@@ -10,10 +10,10 @@ def generate_low_risk_id(length=15):
                 )
                 for i in range(length)
             )
-            code="CUS_{}".format(customer_code)
-            LowRiskAccount.objects.get(customer_code=code)
+            code="CUS_{}".format(customer_code.lower())
+            CapySafeAccount.objects.get(customer_code=code)
 
-        except LowRiskAccount.DoesNotExist:
+        except CapySafeAccount.DoesNotExist:
             return code
         
 def generate_smartpro_id(length=15):
@@ -25,10 +25,10 @@ def generate_smartpro_id(length=15):
                 )
                 for i in range(length)
             )
-            code="CUS_{}".format(customer_code)
-            SmartProAccount.objects.get(customer_code=code)
+            code="CUS_{}".format(customer_code.lower())
+            CapyMaxAccount.objects.get(customer_code=code)
 
-        except SmartProAccount.DoesNotExist:
+        except CapyMaxAccount.DoesNotExist:
             return code
         
 def generate_invoice_id(length=8):
@@ -41,7 +41,7 @@ def generate_invoice_id(length=8):
                 )
                 for i in range(length)
             )
-            trans_id="TRN_{}".format(invoice_id)
+            trans_id="TRN_{}".format(invoice_id.lower())
             TransactionHistory.objects.get(transaction_id=trans_id)
 
         except TransactionHistory.DoesNotExist:

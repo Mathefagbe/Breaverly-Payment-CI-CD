@@ -11,8 +11,7 @@ from .constant import SPECIAL_CHARS_REGEX
 import re
 from datetime import datetime
 import uuid
-
-
+from beaverly_api.models import Roles,RolePermission
 
 def generatedTime():
      return timezone.now() + timezone.timedelta(minutes=2)
@@ -93,7 +92,8 @@ class User(AbstractUser):
     account_number=models.CharField(max_length=15,null=True,blank=True)
     created_at=models.DateField(auto_now=True)
     registation_date=models.DateField(auto_now=datetime.now().date)
-    # role=models.ManyToManyField()
+    role=models.ManyToManyField(Roles)
+
     objects=CustomUserManager()
 
     USERNAME_FIELD="email"
@@ -113,7 +113,12 @@ class User(AbstractUser):
         #check if id,selfie,document,holdingIDcard
 
     def get_user_permissions(self):
-        pass
+        role_perm=RolePermission.objects.select_related("role","permission").filter(role__in=self.role.all())
+        #Get the role-permission for that user
+        permission=[]
+        role_permission=[perms.permission.permission for perms in role_perm]
+        permission.extend(role_permission)
+        return permission
 
 class Otp(models.Model):
     otp=models.CharField(max_length=4,null=False,blank=False)

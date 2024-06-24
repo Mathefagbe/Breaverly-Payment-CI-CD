@@ -26,12 +26,14 @@ from beaverly_api.view.kyc import (
 )
 from beaverly_api.view.deposit import (
     DepositApiView,
-    UserTransactionHistory
+    UserTransactionHistory,
+    TopUpDepositApiView,
+    LeaverageDepositApiView
 )
 urlpatterns = [
-    url("user/profile/",EditProfileApiView.as_view()),
-    url("user/personal/detail/",PersonalDetailApiView.as_view()),
-    url("user/withdrawal/detail/",WithdrawalDetailApiView.as_view()),
+    url("customer/profile/",EditProfileApiView.as_view()),
+    url("customer/personal/detail/",PersonalDetailApiView.as_view()),
+    url("customer/withdrawal/detail/",WithdrawalDetailApiView.as_view()),
 
 
     #--------------------KYC_ URLS-------------------------
@@ -65,5 +67,11 @@ urlpatterns = [
     #---------------TRANSACTION HISTORY AND DEPOSIT------------------
 
     url("deposit/",DepositApiView.as_view()),
-    url("transaction/history/",UserTransactionHistory.as_view())
+    url("deposit/top_up/",TopUpDepositApiView.as_view()),
+    url("deposit/leaverage/",LeaverageDepositApiView.as_view()),
+
+    url("transaction/history/",UserTransactionHistory.as_view()),
+    
+
+
 ]

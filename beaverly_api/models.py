@@ -13,11 +13,24 @@ phone_validator = RegexValidator(
     "The phone number provided is invalid",
 )
 
-class Permissions(models.Model):
-    name=models.CharField(null=False)
+class Permission(models.Model):
+    permission = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-class Role(models.Model):
-    pass
+class Roles(models.Model):
+    role = models.CharField(max_length=50, blank=True, null=True, unique=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+class RolePermission(models.Model):
+    role = models.ForeignKey(Roles, on_delete=models.CASCADE, blank=False, null=False,db_index=True)
+    permission = models.ForeignKey(
+        Permission, on_delete=models.CASCADE, blank=False, null=False,db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 # Create your models here.
 class KycDocumentImage(models.Model):
     def upload_to(instance, filename):
@@ -28,7 +41,7 @@ class KycDocumentImage(models.Model):
         )
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
-    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_image")
+    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_image",db_index=True)
     has_verified=models.BooleanField(default=False)
     image=models.ImageField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -43,7 +56,7 @@ class KycSelfie(models.Model):
         )
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
-    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_selfie")
+    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_selfie",db_index=True)
     has_verified=models.BooleanField(default=False)
     image=models.ImageField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -58,7 +71,7 @@ class LivePhotoKyc(models.Model):
         )
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
-    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_live_kyc")
+    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_live_kyc",db_index=True)
     has_verified=models.BooleanField(default=False)
     image=models.ImageField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -73,7 +86,7 @@ class KycUtilityBills(models.Model):
         )
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
-    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_utility_bills")
+    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_utility_bills",db_index=True)
     has_verified=models.BooleanField(default=False)
     file=models.FileField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -81,7 +94,7 @@ class KycUtilityBills(models.Model):
 
 class KycDetails(models.Model):
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
-    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_details_bills")
+    user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_details_bills",db_index=True)
     date_of_birth=models.DateField(null=True)
     phone_number=models.CharField(null=True,max_length=20,validators=[phone_validator])
     address=models.TextField()
@@ -99,10 +112,10 @@ class KycDetails(models.Model):
     updated_at=models.DateTimeField(auto_now=True)
 
 #Accounts
-class LowRiskAccount(models.Model):
+class CapySafeAccount(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
-    customer_code=models.CharField(max_length=100,null=False,unique=True)
-    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="lowrisk_users")
+    customer_code=models.CharField(max_length=100,null=False,unique=True,db_index=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="lowrisk_users",db_index=True)
     balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
     account_status = models.CharField(max_length=10, choices=ACCOUNT_STATUSES,default="ACTIVE")
     currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
@@ -118,10 +131,10 @@ class LowRiskAccount(models.Model):
     def networth_balance(self):
         pass
 
-class SmartProAccount(models.Model):
+class CapyMaxAccount(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
-    customer_code=models.CharField(max_length=100,null=True,unique=True)
-    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="smartpro_users")
+    customer_code=models.CharField(max_length=100,null=True,unique=True,db_index=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="smartpro_users",db_index=True)
     balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
     account_status = models.CharField(max_length=10, choices=ACCOUNT_STATUSES,default="ACTIVE")
     currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
@@ -141,8 +154,8 @@ class SmartProAccount(models.Model):
 #when a user has money in pending he can withdrawal money from is balance
 class PendingWithdrawals(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
-    customer_code=models.CharField(max_length=100,null=True,unique=False)
-    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="pending_widthdrawal")
+    customer_code=models.CharField(max_length=100,null=True,unique=False,db_index=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="pending_widthdrawal",db_index=True)
     balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
     currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
     status=models.CharField(max_length=20,default="pending",choices=WITHDRAWAL_STATUS)
@@ -154,8 +167,8 @@ class PendingWithdrawals(models.Model):
 #this will be automated from my code with 0.98% fee
 class Withdrawals(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
-    customer_code=models.CharField(max_length=100,null=True,unique=False)
-    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="widthdrawal")
+    customer_code=models.CharField(max_length=100,null=True,unique=False,db_index=True)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="widthdrawal",db_index=True)
     balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
     currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
     created_at=models.DateTimeField(auto_now_add=True)
@@ -174,8 +187,8 @@ class TransactionHistory(models.Model):
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
     transaction_id=models.CharField(db_index=True,null=True,max_length=20)
     receipt=models.FileField(upload_to=upload_to,null=True,blank=True)
-    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="user_transactions")
-    account_type=models.CharField(default="low_risk",max_length=30,choices=ACCOUNT_TYPE)
+    user=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="user_transactions",db_index=True)
+    account_type=models.CharField(default="CapySafe",max_length=30,choices=ACCOUNT_TYPE)
     transaction_type=models.CharField(default="deposit",max_length=30,choices=TRANSACTION_TYPE)
     status=models.CharField(max_length=20,default="pending",choices=WITHDRAWAL_STATUS)
     amount=models.DecimalField(max_digits=20,decimal_places=2,default=0.00)

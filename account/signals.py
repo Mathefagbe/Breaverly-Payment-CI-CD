@@ -13,14 +13,15 @@ from .models import Otp
 @receiver(post_save, sender=Otp ,dispatch_uid="unique_identifier")
 def send_otp_to_email(sender, instance, created, **kwargs):
         try:
-            subject = 'Confirm Your Email Address'
-            message = render_to_string('account/email_confirmation.html', {
-            "otp":instance.otp
-             })
-            from_email = settings.EMAIL_HOST_USER
-            to_email = instance.email
-            send_mail(subject, message, from_email, [to_email], fail_silently=False)
-            #save the email and the otp to email verification table
+            if created:
+                subject = 'Confirm Your Email Address'
+                message = render_to_string('account/email_confirmation.html', {
+                "otp":instance.otp
+                })
+                from_email = settings.EMAIL_HOST_USER
+                to_email = instance.email
+                send_mail(subject, message, from_email, [to_email], fail_silently=False)
+                #save the email and the otp to email verification table
         except Exception as e:
              raise RuntimeError("Error in sending email {}".format(e))
              return None

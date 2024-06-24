@@ -17,16 +17,21 @@ TRANSACTION_TYPE=[
     ("deposit","Deposit"),
     ("withdrawal","Withdrawal"),
     ("top_up","Top_up"),
-    ("leaverage","Leaverage"),
+    ("capyboost","capyboost"),
     ("sell_portfolio","Sell_Portfolio"),
     ("transfer","Transfer")
 ]
 
 ACCOUNT_TYPE=[
-    ("low_risk","Low_risk"),
-    ("smartpro","Smartpro"),
+    ("CapySafe","CapySafe"),
+    ("CapyMax","CapyMax"),
 ]
 GATEWAY=[
     ("bank_transfer","Bank_Transfer"),
     ("card","Card")
+]
+
+KYC_STATUS=[
+    ("verified","verified"),
+    ("unverified","verified")
 ]

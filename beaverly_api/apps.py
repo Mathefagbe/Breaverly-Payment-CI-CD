@@ -7,5 +7,10 @@ class BeaverlyApiConfig(AppConfig):
 
     def ready(self) -> None:
         from . import signals
+        from .role import add_permissions,add_role_permissions,add_roles
+
+        add_roles()
+        add_permissions()
+        add_role_permissions()
 
         

@@ -59,7 +59,7 @@ class AdminGetUploadedKycPhotoApiView(APIView):
     def get(self,request):
         try:
             #check Permission
-            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
                         "status":"Failed",
                         "data":None,
@@ -85,7 +85,7 @@ class AdminUpdateUploadedKycPhotoApiView(APIView):
     def put(self,request,id):
         try:
             #check Permission
-            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
                         "status":"Failed",
                         "data":None,
@@ -113,7 +113,7 @@ class AdminUnVerifyUploadedKycPhotoApiView(APIView):
     def put(self,request,id):
         try:
             #check Permission
-            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
                         "status":"Failed",
                         "data":None,
@@ -171,7 +171,7 @@ class AdminGetUploadedKycSelfieApiView(APIView):
     def get(self,request):
         try:
             #check Permission
-            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
                         "status":"Failed",
                         "data":None,

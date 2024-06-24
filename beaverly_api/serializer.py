@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import (KycDetails,KycDocumentImage,KycSelfie,
                      KycUtilityBills,LivePhotoKyc,
-                     LowRiskAccount,TransactionHistory
+                     TransactionHistory
                      )
 from drf_extra_fields.fields import Base64ImageField,Base64FileField
 
@@ -82,11 +82,9 @@ class WithdrawalDetailSerializer(serializers.ModelSerializer):
             "account_name"
         ]
 
-
 class ImageUploadSerializer(serializers.Serializer):
     image=Base64ImagesField(required=True,use_url=True)
 
-    
 class UploadKycFileSerializer(serializers.Serializer):
     file=serializers.FileField(required=True)
     
@@ -145,20 +143,81 @@ class TransactionWriteSerializer(serializers.ModelSerializer):
                 "required":True
             },
             "transaction_type":{
-                "required":True
+                "required":False,
+                "default":"deposit"
             },
             "amount":{
                 "required":True
             },
         }
 
+class TopUpTransactionWriteSerializer(serializers.ModelSerializer):
+    receipt=PDFBase64FileField(required=False)
+    class Meta:
+        model=TransactionHistory
+        fields=[
+            "receipt",
+            "account_type",
+            "transaction_type",
+            "amount",
+            "currency",
+            "payment_gateway",
+            "transaction_fee"
+        ]
+        extra_kwargs={
+            "account_type":{
+                "required":True
+            },
+            "transaction_type":{
+                "required":False,
+                "default":"top_up"
+            },
+            "amount":{
+                "required":True
+            },
+        }
 
     def validate(self, attrs):
         if attrs["payment_gateway"].lower() == "bank_transfer":
             raise RuntimeError("Please Upload Your Desposit Receipt")
         return super().validate(attrs)
 
+class LeaverageTransactionWriteSerializer(serializers.ModelSerializer):
+    receipt=PDFBase64FileField(required=False)
+    class Meta:
+        model=TransactionHistory
+        fields=[
+            "receipt",
+            "account_type",
+            "transaction_type",
+            "amount",
+            "currency",
+            "payment_gateway",
+            "transaction_fee",
+            "leaverage_duration",
+            "deposit_percentage",
+            "inital_deposit",
+            "pay_off_amount",
+        ]
+        extra_kwargs={
+            "account_type":{
+                "required":False,
+                "default":"low_risk"
+            },
+            "transaction_type":{
+                "required":False,
+                "default":"leaverage"
+            },
+            "amount":{
+                "required":True
+            },
+        }
 
+    def validate(self, attrs):
+        if attrs["payment_gateway"].lower() == "bank_transfer":
+            raise RuntimeError("Please Upload Your Desposit Receipt")
+        return super().validate(attrs)
+    
 class UserReadTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model=get_user_model()
@@ -181,3 +240,4 @@ class TransactionReadSerializer(serializers.ModelSerializer):
         fields="__all__"
         depth=1
    
+

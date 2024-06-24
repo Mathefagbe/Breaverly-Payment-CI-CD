@@ -7,7 +7,7 @@ from django.core.mail import send_mail
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 from django.template.loader import render_to_string
-from .models import SmartProAccount,LowRiskAccount
+from .models import CapyMaxAccount,CapySafeAccount
 
 from .helper import generate_low_risk_id, generate_smartpro_id
 
@@ -15,11 +15,11 @@ from .helper import generate_low_risk_id, generate_smartpro_id
 def account_creation_handler(sender, instance, created, **kwargs):
         try:
             if created:
-                SmartProAccount.objects.create(
+                CapyMaxAccount.objects.create(
                     user=instance,
                     customer_code=generate_smartpro_id()
                 )
-                LowRiskAccount.objects.create(
+                CapySafeAccount.objects.create(
                     user=instance,
                     customer_code=generate_low_risk_id()
                 )

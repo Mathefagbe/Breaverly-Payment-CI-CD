@@ -14,6 +14,8 @@ from django.contrib.auth import get_user_model
 import string
 from django.utils.crypto import get_random_string
 from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
+from beaverly_api.models import Roles
+from django.db import transaction
 
 class UserRegistrationView(APIView):
     authentication_classes=[]
@@ -22,11 +24,13 @@ class UserRegistrationView(APIView):
     @swagger_auto_schema(
             request_body=UserRegistrationWriteSerializer
     )
+    @transaction.atomic
     def post(self, request):
         try:
             serializer=UserRegistrationWriteSerializer(data=request.data)
             if serializer.is_valid(raise_exception=True):
                 data=serializer.save()
+                data.role.add(Roles.objects.get(role="admin"))
                 #Generate token after successfull registration
             res={
                 "status":"success",
@@ -42,6 +46,35 @@ class UserRegistrationView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
+class AdminUserRegistrationView(APIView):
+    authentication_classes=[]
+    permission_classes=[]
+
+    @swagger_auto_schema(
+            request_body=UserRegistrationWriteSerializer
+    )
+    @transaction.atomic
+    def post(self, request):
+        try:
+            serializer=UserRegistrationWriteSerializer(data=request.data)
+            if serializer.is_valid(raise_exception=True):
+                data=serializer.save()
+                data.role.add(Roles.objects.get(role="admin"))
+                #Generate token after successfull registration
+            res={
+                "status":"success",
+                "data":get_user_token(data),
+                "message":"Account Created Successfully"
+                }
+            return Response(res,status=status.HTTP_201_CREATED)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
 class LoginApiView(TokenObtainPairView):
 
     @swagger_auto_schema(

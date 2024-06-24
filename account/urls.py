@@ -4,10 +4,12 @@ from .views import (
                     VerifyOtpCodeAPiView,
                     UserRegistrationView,
                     LoginApiView,
-                    PasswordResetApiView
+                    PasswordResetApiView,
+                    AdminUserRegistrationView
                     )
 urlpatterns = [
     url("auth/register/",UserRegistrationView.as_view()),
+    url("auth/admin/register/",AdminUserRegistrationView.as_view()),
     url("auth/login/",LoginApiView.as_view()),
     url("auth/password/reset/",PasswordResetApiView.as_view()),
     url("auth/email/verification/",EmailVerificationApiView.as_view()),
