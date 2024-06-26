@@ -19,7 +19,7 @@ urlpatterns = [
 
     url("transaction/history/",UserTransactionHistory.as_view()),
     url("admin/transaction/history/",AdminGetAllTransactionApiView.as_view()),
-    url("admin/transaction/history/<int:id>/",AdminSingleTransactionApiView.as_view()),
+    url("admin/transaction/history/<uuid:id>/",AdminSingleTransactionApiView.as_view()),
 
     url("contract/durations/",ContractDurationApiView.as_view()),
     url("reschedule/payment/",ReschedulePaymentApiView.as_view())

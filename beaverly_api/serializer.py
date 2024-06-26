@@ -3,10 +3,11 @@ import PyPDF2
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import (KycDetails,KycDocumentImage,KycSelfie,
-                     KycUtilityBills,LivePhotoKyc,Bank
-                   
+                     KycUtilityBills,LivePhotoKyc,Bank,CapyMaxAccount,CapySafeAccount,
+                     CapyBoostBalance
                      )
 from drf_extra_fields.fields import Base64ImageField,Base64FileField
+from beaverly_payment.models import Withdrawals
 
 class Base64ImagesField(Base64ImageField):
     class Meta:
@@ -130,3 +131,47 @@ class KycSelfieReadSerializer(serializers.ModelSerializer):
         model=KycSelfie
         fields="__all__"
 
+class UpdateKycStatusSerializer(serializers.Serializer):
+    status=serializers.ChoiceField(choices=["verified","unverified"])
+
+class CapySafeAccountReadSerializer(serializers.ModelSerializer):
+    customer=UserReadSerializer()
+    networth=serializers.SerializerMethodField()
+    class Meta:
+        model=CapySafeAccount
+        fields="__all__"
+        depth=1
+
+    def get_networth(self,obj):
+        capyboost=CapyBoostBalance.objects.select_related("customer").filter(customer=obj.customer).first()
+        capymax=CapyMaxAccount.objects.select_related("customer").filter(customer=obj.customer).first()
+        net=(obj.balance + capymax.balance) - capyboost.remaining_balance
+        return net
+
+
+class CapyMaxAccountReadSerializer(serializers.ModelSerializer):
+    customer=UserReadSerializer()
+    networth=serializers.SerializerMethodField()
+    class Meta:
+        model=CapyMaxAccount
+        fields="__all__"
+        depth=1
+
+    def get_networth(self,obj):
+        capyboost=CapyBoostBalance.objects.select_related("customer").filter(customer=obj.customer).first()
+        capysafe=CapySafeAccount.objects.select_related("customer").filter(customer=obj.customer).first()
+        net=(obj.balance + capysafe.balance) - capyboost.remaining_balance
+        return net
+
+class CapyBoostBalanceReadSerializer(serializers.ModelSerializer):
+    customer=UserReadSerializer()
+    class Meta:
+        model=CapyBoostBalance
+        fields="__all__"
+        depth=1
+
+class UpdateCustomeAccountBalanceSerializer(serializers.Serializer):
+    balance=serializers.DecimalField(max_digits=10,decimal_places=2)
+
+class UpdateCustomeCapyBoostBalanceSerializer(serializers.Serializer):
+    remaining_balance=serializers.DecimalField(max_digits=10,decimal_places=2)

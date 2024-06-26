@@ -5,7 +5,7 @@ from account.constant import SPECIAL_CHARS_REGEX
 from django.core.validators import RegexValidator,MaxValueValidator,MinValueValidator
 import uuid
 from .constant import( 
-    ACCOUNT_STATUSES,CURRENCY,LOAN_STATUS)
+    ACCOUNT_STATUSES,CURRENCY,KYC_STATUS)
 
 phone_validator = RegexValidator(
     r"^(\+?\d{0,4})?\s?-?\s?(\(?\d{3}\)?)\s?-?\s?(\(?\d{3}\)?)\s?-?\s?(\(?\d{4}\)?)?$",
@@ -41,7 +41,7 @@ class KycDocumentImage(models.Model):
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
     user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_image",db_index=True)
-    has_verified=models.BooleanField(default=False)
+    status=models.CharField(KYC_STATUS,max_length=10,default="unverified")
     image=models.ImageField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
@@ -56,7 +56,7 @@ class KycSelfie(models.Model):
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
     user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_selfie",db_index=True)
-    has_verified=models.BooleanField(default=False)
+    status=models.CharField(KYC_STATUS,max_length=10,default="unverified")
     image=models.ImageField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
@@ -71,7 +71,7 @@ class LivePhotoKyc(models.Model):
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
     user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_live_kyc",db_index=True)
-    has_verified=models.BooleanField(default=False)
+    status=models.CharField(KYC_STATUS,max_length=10,default="unverified")
     image=models.ImageField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
@@ -86,7 +86,7 @@ class KycUtilityBills(models.Model):
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)
     user=models.OneToOneField(settings.AUTH_USER_MODEL,unique=True,on_delete=models.CASCADE,related_name="user_kyc_utility_bills",db_index=True)
-    has_verified=models.BooleanField(default=False)
+    status=models.CharField(KYC_STATUS,max_length=10,default="unverified")
     file=models.FileField(upload_to=upload_to,null=True,blank=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
@@ -110,6 +110,21 @@ class KycDetails(models.Model):
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
+#balances
+class CapyBoostBalance(models.Model):
+    id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
+    customer=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="capyboost_users",db_index=True,null=True)
+    remaining_balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
+    currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
+    repayment_schedule=models.CharField(max_length=300,null=True) #
+    transaction_fee=models.FloatField(null=True,validators=[MinValueValidator(0),MaxValueValidator(100.0)])
+    deposit_percentage=models.FloatField(null=True,validators=[MinValueValidator(0.1),MaxValueValidator(1.0)])
+    inital_deposit=models.DecimalField(max_digits=20,decimal_places=2,null=True)
+    loan_amount=models.DecimalField(max_digits=20,decimal_places=2,null=True)
+    expire_date=models.DateField(null=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+
 #Accounts
 class CapySafeAccount(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
@@ -128,10 +143,7 @@ class CapySafeAccount(models.Model):
     def kyc_status(self):
         pass
 
-    @property
-    def networth_balance(self):
-        pass
-
+        
 class CapyMaxAccount(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
     customer_code=models.CharField(max_length=100,null=True,unique=True,db_index=True)
@@ -148,10 +160,6 @@ class CapyMaxAccount(models.Model):
     def kyc_status(self):
         pass
 
-    @property
-    def networth_balance(self):
-        pass
-
 class Bank(models.Model):
     name=models.CharField(max_length=200,null=False,blank=False,db_index=True)
     type=models.CharField(max_length=20,null=True)
@@ -161,17 +169,3 @@ class Bank(models.Model):
     country=models.CharField(max_length=100,null=True)
     active=models.BooleanField(default=False)
 
-#balances
-class CapyBoostBalance(models.Model):
-    id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
-    customer=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="capyboost_users",db_index=True,null=True)
-    remaining_balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
-    currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
-    repayment_schedule=models.CharField(max_length=300,null=True) #
-    transaction_fee=models.FloatField(null=True,validators=[MinValueValidator(0),MaxValueValidator(100.0)])
-    deposit_percentage=models.FloatField(null=True,validators=[MinValueValidator(0.1),MaxValueValidator(1.0)])
-    inital_deposit=models.DecimalField(max_digits=20,decimal_places=2,null=True)
-    loan_amount=models.DecimalField(max_digits=20,decimal_places=2,null=True)
-    expire_date=models.DateField(null=True)
-    created_at=models.DateTimeField(auto_now_add=True)
-    updated_at=models.DateTimeField(auto_now=True)

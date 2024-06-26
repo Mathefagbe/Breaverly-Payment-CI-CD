@@ -115,7 +115,6 @@ class GetAllBanksApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST) 
         
-
 class ProfileAccount(APIView):
     def get(self,request):
         try:

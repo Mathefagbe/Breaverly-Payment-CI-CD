@@ -21,14 +21,16 @@ from beaverly_api.view.kyc import (
     UploadedKycUtilityBillApiView,
     KycVerificationUploadedStepApiView,
     KycFormDetalsApiView,
-    AdminUnverifiedUploadedKycUtilityBillApiView,
-    AdminUnVerifiedUploadedLivePhotoKycApiView,
-    AdminUnVerifyUploadedKycPhotoApiView,
-    AdminUnverifyUploadedKycSelfieApiView
 )
 from beaverly_api.view.accounts import (
     CreateCapyMaxAccountApiView,
-    CreateCapySafeAccountApiView
+    CreateCapySafeAccountApiView,
+    CapyMaxCustomersAccountsApiview,
+    CapySafeCustomersAccountsApiview,
+    UpdateCustomerCapyMaxBalanceApiView,
+    UpdateCustomerCapysafeBalanceApiView,
+    UpdateCustomerCapyBoostBalanceApiView,
+    CapyBoostCustomersBalanceApiview
 )
 urlpatterns = [
     url("customer/profile/",EditProfileApiView.as_view()),
@@ -50,16 +52,10 @@ urlpatterns = [
     url("admin/get/kyc/holding_id/cards/",AdminGetUploadedLivePhotoKycApiView.as_view()),
     url("admin/get/kyc/utility/",AdminGetUploadedKycUtilityBillApiView.as_view()),
 
-    url("admin/verify/kyc/photo/<int:id>/",AdminUpdateUploadedKycPhotoApiView.as_view()),
-    url("admin/verify/kyc/selfie/<int:id>/",AdminUpdateUploadedKycSelfieApiView.as_view()),
-    url("admin/verify/kyc/holding_id/card/<int:id>/",AdminUpdateUploadedLivePhotoKycApiView.as_view()),
-    url("admin/verify/kyc/utility/<int:id>/",AdminUpdateUploadedKycUtilityBillApiView.as_view()),
-
-    url("admin/unverify/kyc/photo/<int:id>/",AdminUnVerifyUploadedKycPhotoApiView.as_view()),
-    url("admin/unverify/kyc/selfie/<int:id>/",AdminUnverifyUploadedKycSelfieApiView.as_view()),
-    url("admin/unverify/kyc/holding_id/card/<int:id>/",AdminUnVerifiedUploadedLivePhotoKycApiView.as_view()),
-    url("admin/unverify/kyc/utility/<int:id>/",AdminUnverifiedUploadedKycUtilityBillApiView.as_view()),
-
+    url("admin/kyc/photo/status/<uuid:id>/update/",AdminUpdateUploadedKycPhotoApiView.as_view()),
+    url("admin/kyc/selfie/status/<uuid:id>/update/",AdminUpdateUploadedKycSelfieApiView.as_view()),
+    url("admin/kyc/holding_id/card/status/<uuid:id>/update/",AdminUpdateUploadedLivePhotoKycApiView.as_view()),
+    url("admin/kyc/utility/status/<uuid:id>/update/",AdminUpdateUploadedKycUtilityBillApiView.as_view()),
 
 
     url("kyc/",KycVerificationUploadedStepApiView.as_view()),
@@ -67,6 +63,12 @@ urlpatterns = [
 
     #------------------KYC FINISHED-------------------------------
 
-    url("create/capysafe/account/",CreateCapySafeAccountApiView.as_view()),
-    url("create/capymax/account/",CreateCapyMaxAccountApiView.as_view())
+    url("capysafe/customer/account/",CreateCapySafeAccountApiView.as_view()),
+    url("capymax/customer/account/",CreateCapyMaxAccountApiView.as_view()),
+    url("capysafe/customers/",CapySafeCustomersAccountsApiview.as_view()),
+    url("capymax/customers/",CapyMaxCustomersAccountsApiview.as_view()),
+    url("capyboost/customers/",CapyBoostCustomersBalanceApiview.as_view()),
+    url("capysafe/balance/<uuid:id>/update/",UpdateCustomerCapysafeBalanceApiView.as_view()),
+    url("capymax/balance/<uuid:id>/update/",UpdateCustomerCapyMaxBalanceApiView.as_view()),
+    url("capyboost/balance/<uuid:id>/update/",UpdateCustomerCapyBoostBalanceApiView.as_view()),
 ]

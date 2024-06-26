@@ -10,7 +10,7 @@ CURRENCY=[
 
 KYC_STATUS=[
     ("verified","verified"),
-    ("unverified","verified")
+    ("unverified","unverified")
 ]
 
 LOAN_STATUS=[
@@ -20,3 +20,4 @@ LOAN_STATUS=[
     ("funded","funded"),
     ("repaid","repaid")
 ]
+
