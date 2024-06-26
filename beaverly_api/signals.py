@@ -7,7 +7,10 @@ from django.core.mail import send_mail
 from django.dispatch import receiver
 from django.db.models.signals import post_save
 from django.template.loader import render_to_string
+from .models import CapyMaxAccount,CapySafeAccount
+from django.db import transaction
 
+from .helper import generate_low_risk_id, generate_smartpro_id
 
 
 # @receiver(post_save, sender=settings.AUTH_USER_MODEL)

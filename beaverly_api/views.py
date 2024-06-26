@@ -12,7 +12,7 @@ from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
-from .models import Bank
+from .models import Bank,CapyBoostBalance,CapyMaxAccount,CapySafeAccount
 
 
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
@@ -105,6 +105,43 @@ class GetAllBanksApiView(APIView):
                 "status":"success",
                 "data":data,
                 "message":"List of banks fetched Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST) 
+        
+
+class ProfileAccount(APIView):
+    def get(self,request):
+        try:
+            capysafe=CapySafeAccount.objects.select_related("customer").filter(customer=request.user).first()
+            capymax=CapyMaxAccount.objects.select_related("customer").filter(customer=request.user).first()
+            capyboot=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user).first()
+            res={
+                    "status":"success",
+                    "data":[
+                        {
+                        "name":"CapySafe",
+                        "amount":capysafe.balance,
+                        "expire_date":capysafe.expire_date
+                        },
+                        {
+                        "name":"CapyMax",
+                        "amount":capymax.balance,
+                        "expire_date":capymax.expire_date
+                        },
+                        {
+                        "name":"CapyBoost",
+                        "amount":capyboot.remaining_balance,
+                        "expire_date":capyboot.expire_date
+                        }
+                ],
+                "message":"customer account fetched successfull"
             }
             return Response(res,status=status.HTTP_200_OK)
         except Exception as e:

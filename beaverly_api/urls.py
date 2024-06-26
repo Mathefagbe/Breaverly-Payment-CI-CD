@@ -3,7 +3,8 @@ from .views import (
     EditProfileApiView,
     PersonalDetailApiView,
     WithdrawalDetailApiView,
-    GetAllBanksApiView
+    GetAllBanksApiView,
+    ProfileAccount
 )
 from beaverly_api.view.kyc import (
     AdminGetUploadedKycPhotoApiView,
@@ -33,6 +34,7 @@ urlpatterns = [
     url("customer/profile/",EditProfileApiView.as_view()),
     url("customer/personal/detail/",PersonalDetailApiView.as_view()),
     url("customer/withdrawal/detail/",WithdrawalDetailApiView.as_view()),
+    url("customer/account/detail/",ProfileAccount.as_view()),
     # url("customers/"),
 
     url("banks/",GetAllBanksApiView.as_view()),

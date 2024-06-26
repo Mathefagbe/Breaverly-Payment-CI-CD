@@ -207,26 +207,29 @@ class TopUpDepositApiView(APIView):
                         loan[0].remaining_balance=balance #if the money coming and the loan are the same
                         loan[0].expire_date=None
                         credited_amount=0.00
+                        amount_repaid = deposit_amount - credited_amount
                         loan[0].save()
                     if  loan[0].remaining_balance > deposit_amount:
                         balance=loan[0].remaining_balance - deposit_amount #if the loan is more than the depost
                         loan[0].remaining_balance=balance
                         credited_amount=0.00
+                        amount_repaid = deposit_amount - credited_amount
                         loan[0].save()
                     if loan[0].remaining_balance < deposit_amount:
                         balance=deposit_amount - loan[0].remaining_balance #if the loan is less than the depost
                         loan[0].remaining_balance=0.00
                         loan[0].expire_date=None
                         credited_amount=balance
+                        amount_repaid = deposit_amount - credited_amount
                         loan[0].save()
                 #todo check if user has leaverage before top
                 TransactionHistory.objects.create(
                     **serializer.validated_data,
                     initiated_by=request.user,
                     transaction_id=generate_invoice_id(),
+                    amount_repaid=amount_repaid if loan else None,
                     credited_amount= (credited_amount* Decimal(serializer.validated_data["transaction_fee"]))
                       if loan else (serializer.validated_data["amount"] * Decimal(serializer.validated_data["transaction_fee"]))
-
                 )
                 res={
                     "status":"Success",
