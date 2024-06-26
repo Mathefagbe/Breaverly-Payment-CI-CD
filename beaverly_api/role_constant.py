@@ -16,7 +16,6 @@ default_roles = [
 
 ]
 
-
 # Define the default permissions for the default application roles
 default_role_permissions = [
     {

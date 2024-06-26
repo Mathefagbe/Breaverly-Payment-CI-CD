@@ -42,7 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_yasg',
     "account",
-    "beaverly_api"
+    "beaverly_api",
+    "beaverly_payment"
 ]
 
 MIDDLEWARE = [

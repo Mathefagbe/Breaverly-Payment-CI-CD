@@ -16,7 +16,6 @@ from django.utils.crypto import get_random_string
 from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 from beaverly_api.models import Roles
 from django.db import transaction
-
 class UserRegistrationView(APIView):
     authentication_classes=[]
     permission_classes=[]
@@ -24,20 +23,21 @@ class UserRegistrationView(APIView):
     @swagger_auto_schema(
             request_body=UserRegistrationWriteSerializer
     )
-    @transaction.atomic
     def post(self, request):
         try:
-            serializer=UserRegistrationWriteSerializer(data=request.data)
-            if serializer.is_valid(raise_exception=True):
-                data=serializer.save()
-                data.role.add(Roles.objects.get(role="admin"))
-                #Generate token after successfull registration
-            res={
-                "status":"success",
-                "data":get_user_token(data),
-                "message":"Account Created Successfully"
-                }
-            return Response(res,status=status.HTTP_201_CREATED)
+            with transaction.atomic():
+                serializer=UserRegistrationWriteSerializer(data=request.data)
+                if serializer.is_valid(raise_exception=True):
+                    data=serializer.save()
+                    data.role.add(Roles.objects.get(role="admin"))
+                    #Generate token after successfull registration
+
+                res={
+                    "status":"success",
+                    "data":get_user_token(data),
+                    "message":"Account Created Successfully"
+                    }
+                return Response(res,status=status.HTTP_201_CREATED)
         except Exception as e:
             res={
                 "status":"Failed",
@@ -53,7 +53,7 @@ class AdminUserRegistrationView(APIView):
     @swagger_auto_schema(
             request_body=UserRegistrationWriteSerializer
     )
-    @transaction.atomic
+    @transaction.atomic()
     def post(self, request):
         try:
             serializer=UserRegistrationWriteSerializer(data=request.data)
@@ -206,5 +206,6 @@ class VerifyOtpCodeAPiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
 
 

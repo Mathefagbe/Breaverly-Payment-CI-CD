@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainSerializer,TokenObtainPairSerializer
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
-from .models import Bank
 
 User=get_user_model()
 
@@ -72,7 +71,3 @@ class PasswordResetSerializer(serializers.Serializer):
         raise RuntimeError("Password does not match, Pleas re-enter password")
     
 
-class BanksSerializers(serializers.ModelSerializer):
-    class Meta:
-        model=Bank
-        fields="__all__"

@@ -1,4 +1,4 @@
-from account.models import Bank
+from .models import Bank
 from .bank_list import bank_list
 
 def load_banks():

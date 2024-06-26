@@ -3,6 +3,7 @@ from .serializer import (
     EditProfileSerializer,
     PersonalDetailSerializer,
     WithdrawalDetailSerializer,
+    BanksSerializers
 
 )
 from itertools import chain
@@ -11,6 +12,7 @@ from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
+from .models import Bank
 
 
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
@@ -94,3 +96,21 @@ class WithdrawalDetailApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
+class GetAllBanksApiView(APIView):
+    def get(self,request):
+        try:
+            queryset=Bank.objects.all()
+            data=BanksSerializers(queryset,many=True).data
+            res={
+                "status":"success",
+                "data":data,
+                "message":"List of banks fetched Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST) 

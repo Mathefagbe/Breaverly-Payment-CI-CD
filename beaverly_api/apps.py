@@ -6,7 +6,7 @@ class BeaverlyApiConfig(AppConfig):
     name = "beaverly_api"
 
     def ready(self) -> None:
-        from . import signals
+        # from . import signals
         from .role import add_permissions,add_role_permissions,add_roles
         from .bank_helpers import load_banks
 

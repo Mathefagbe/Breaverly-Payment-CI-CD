@@ -11,7 +11,7 @@ from .constant import SPECIAL_CHARS_REGEX
 import re
 from datetime import datetime
 import uuid
-from beaverly_api.models import Roles,RolePermission
+from beaverly_api.models import Roles,RolePermission,Bank
 
 def generatedTime():
      return timezone.now() + timezone.timedelta(minutes=2)
@@ -129,14 +129,7 @@ class Otp(models.Model):
 
     # objects=OTPManager()
 
-class Bank(models.Model):
-    name=models.CharField(max_length=200,null=False,blank=False,db_index=True)
-    type=models.CharField(max_length=20,null=True)
-    slug=models.SlugField(db_index=True,null=True)
-    code=models.CharField(max_length=20,null=True)
-    currency=models.CharField(max_length=10,null=True)
-    country=models.CharField(max_length=100,null=True)
-    active=models.BooleanField(default=False)
+
     
 
 

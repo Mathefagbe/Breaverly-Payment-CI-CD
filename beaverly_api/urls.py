@@ -3,6 +3,7 @@ from .views import (
     EditProfileApiView,
     PersonalDetailApiView,
     WithdrawalDetailApiView,
+    GetAllBanksApiView
 )
 from beaverly_api.view.kyc import (
     AdminGetUploadedKycPhotoApiView,
@@ -24,17 +25,17 @@ from beaverly_api.view.kyc import (
     AdminUnVerifyUploadedKycPhotoApiView,
     AdminUnverifyUploadedKycSelfieApiView
 )
-from beaverly_api.view.deposit import (
-    DepositApiView,
-    UserTransactionHistory,
-    TopUpDepositApiView,
-    LeaverageDepositApiView
+from beaverly_api.view.accounts import (
+    CreateCapyMaxAccountApiView,
+    CreateCapySafeAccountApiView
 )
 urlpatterns = [
     url("customer/profile/",EditProfileApiView.as_view()),
     url("customer/personal/detail/",PersonalDetailApiView.as_view()),
     url("customer/withdrawal/detail/",WithdrawalDetailApiView.as_view()),
+    # url("customers/"),
 
+    url("banks/",GetAllBanksApiView.as_view()),
 
     #--------------------KYC_ URLS-------------------------
     url("kyc/upload/photo/",UploadedKycPhotoApiView.as_view()),
@@ -64,14 +65,6 @@ urlpatterns = [
 
     #------------------KYC FINISHED-------------------------------
 
-    #---------------TRANSACTION HISTORY AND DEPOSIT------------------
-
-    url("deposit/",DepositApiView.as_view()),
-    url("deposit/top_up/",TopUpDepositApiView.as_view()),
-    url("deposit/leaverage/",LeaverageDepositApiView.as_view()),
-
-    url("transaction/history/",UserTransactionHistory.as_view()),
-    
-
-
+    url("create/capysafe/account/",CreateCapySafeAccountApiView.as_view()),
+    url("create/capymax/account/",CreateCapyMaxAccountApiView.as_view())
 ]
