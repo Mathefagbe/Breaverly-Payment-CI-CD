@@ -7,7 +7,9 @@ from .views import (
     AdminGetAllTransactionApiView,
     AdminSingleTransactionApiView,
     ReschedulePaymentApiView,
-    ContractDurationApiView
+    ContractDurationApiView,
+    SellCapyMAxPortFollioApiView,
+    SellCapySafePortFollioApiView
 )
 
 urlpatterns = [
@@ -22,6 +24,9 @@ urlpatterns = [
     url("admin/transaction/history/<uuid:id>/",AdminSingleTransactionApiView.as_view()),
 
     url("contract/durations/",ContractDurationApiView.as_view()),
-    url("reschedule/payment/",ReschedulePaymentApiView.as_view())
+    url("reschedule/payment/",ReschedulePaymentApiView.as_view()),
+
+    url("sell_capySafe/portfolio/",SellCapySafePortFollioApiView.as_view()),
+    url("sell_capyMax/portfolio/",SellCapyMAxPortFollioApiView.as_view())
 
 ]

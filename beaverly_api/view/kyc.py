@@ -375,8 +375,7 @@ class AdminUpdateUploadedKycUtilityBillApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
-
-        
+      
 class KycFormDetalsApiView(APIView):
     '''
     Kyc Details can be created or edited with this endpoint

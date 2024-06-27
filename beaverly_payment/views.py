@@ -8,7 +8,8 @@ from .serializers import (
     AllDepositTransactionwriteSerializer,
     ChangeTransactionStatusSerializer,
     ContractDurationSerilaizer,
-    RepaymentScheduleSerilaizer
+    RepaymentScheduleSerilaizer,
+    AmountSerializer
 
 )
 from decimal import Decimal
@@ -20,19 +21,20 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from .models import (
-    TransactionHistory,ContractDuration,RepaymentSchedule
+    TransactionHistory,ContractDuration,RepaymentSchedule,Withdrawals
 )
 from django.db.models import Q
 from beaverly_api import permissions as app_permissions
 from .helper import generate_invoice_id,expire_date
 from django.db import transaction
 from dateutil.relativedelta import relativedelta
-from beaverly_api.models import CapyBoostBalance,CapySafeAccount
+from beaverly_api.models import CapyBoostBalance,CapySafeAccount,CapyMaxAccount
 from decimal import Decimal
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
 
 class DepositApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
             request_body=TransactionWriteSerializer
     )
@@ -187,6 +189,7 @@ class AdminGetAllTransactionApiView(APIView):
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
 class TopUpDepositApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
             request_body=TopUpTransactionWriteSerializer
     )
@@ -246,6 +249,7 @@ class TopUpDepositApiView(APIView):
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
 class LeaverageDepositApiView(APIView):
+    parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
             request_body=LeaverageTransactionWriteSerializer
     )
@@ -337,6 +341,120 @@ class ReschedulePaymentApiView(APIView):
                 "message":"reschedule Payment fetched Successfully"
             }
             return Response(res,status=status.HTTP_201_CREATED)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class SellCapySafePortFollioApiView(APIView):
+    @swagger_auto_schema(
+            request_body=AmountSerializer
+    )
+    def post(self,request):
+        try:
+            with transaction.atomic():
+            #check if the amount enter is upto the avaliable amount
+                serializer=AmountSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                amount=serializer.validated_data["amount"]
+                account=CapySafeAccount.objects.get(customer=request.user)
+                if amount > account.balance:
+                    raise RuntimeError("The amount you enter is more than your balance on this account")
+                account.balance = account.balance - amount
+                account.save()
+               
+                obj,created=Withdrawals.objects.get_or_create(
+                    customer=request.user,
+                    defaults={
+                        "customer_code":account.customer_code,
+                        "customer":request.user,
+                        "balance":amount * Decimal(0.98) 
+                    }
+                )
+                if not created: #get the object
+                    obj.balance +=amount * Decimal(0.98)
+                    obj.save()
+
+                TransactionHistory.objects.create(
+                    initiated_by=request.user,
+                    transaction_id=generate_invoice_id(),
+                    account_type="CapySafe",
+                    transaction_type="withdrawal",
+                    amount=amount,
+                    credited_amount=amount * Decimal(0.98),
+                    status="successful"
+                )
+                res={
+                    "status":"Success",
+                    "data":None,
+                    "message":"Withdrawal Successful"
+                }
+                return Response(res,status=status.HTTP_201_CREATED)
+        except CapySafeAccount.DoesNotExist as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"Account Not Found"
+            }
+            return Response(res,status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+class SellCapyMAxPortFollioApiView(APIView):
+    @swagger_auto_schema(
+            request_body=AmountSerializer
+    )
+    def post(self,request):
+        try:
+            with transaction.atomic():
+            #check if the amount enter is upto the avaliable amount
+                serializer=AmountSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                amount=serializer.validated_data["amount"]
+                account=CapyMaxAccount.objects.get(customer=request.user)
+                if amount > account.balance:
+                    raise RuntimeError("The amount you enter is more than your balance on this account")
+                account.balance = account.balance - amount
+                account.save()
+
+                obj,created=Withdrawals.objects.update_or_create(
+                    customer=request.user,
+                    defaults={
+                        "customer_code":account.customer_code,
+                        "customer":request.user,
+                        "balance":amount * 0.98 if created else (amount + obj.balance) * 0.98
+                    }
+                )
+                TransactionHistory.objects.create(
+                    initiated_by=request.user,
+                    transaction_id=generate_invoice_id(),
+                    account_type="CapyMax",
+                    transaction_type="withdrawal",
+                    amount=amount,
+                    credited_amount=amount * 0.98,
+                    status="successful"
+                )
+                res={
+                    "status":"Success",
+                    "data":None,
+                    "message":"Withdrawal Successful"
+                }
+                return Response(res,status=status.HTTP_201_CREATED)
+        except CapyMaxAccount.DoesNotExist as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"Account Not Found"
+            }
+            return Response(res,status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             res={
                 "status":"Failed",
