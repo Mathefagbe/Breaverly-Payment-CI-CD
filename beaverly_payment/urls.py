@@ -9,7 +9,9 @@ from .views import (
     ReschedulePaymentApiView,
     ContractDurationApiView,
     SellCapyMAxPortFollioApiView,
-    SellCapySafePortFollioApiView
+    SellCapySafePortFollioApiView,
+    FetchRecipiantFullDetailsApiView,
+    TransferToBeaverlyMemberApiView
 )
 
 urlpatterns = [
@@ -27,6 +29,9 @@ urlpatterns = [
     url("reschedule/payment/",ReschedulePaymentApiView.as_view()),
 
     url("sell_capySafe/portfolio/",SellCapySafePortFollioApiView.as_view()),
-    url("sell_capyMax/portfolio/",SellCapyMAxPortFollioApiView.as_view())
+    url("sell_capyMax/portfolio/",SellCapyMAxPortFollioApiView.as_view()),
+
+    url("fetch/recipient_email/<str:recipient_email>/",FetchRecipiantFullDetailsApiView.as_view()),
+    url("transfer/",TransferToBeaverlyMemberApiView.as_view())
 
 ]

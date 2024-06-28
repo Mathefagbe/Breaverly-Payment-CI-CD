@@ -114,7 +114,7 @@ class KycDetails(models.Model):
 class CapyBoostBalance(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
     customer=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name="capyboost_users",db_index=True,null=True)
-    remaining_balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
+    payoff_amount=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
     currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
     repayment_schedule=models.CharField(max_length=300,null=True) #
     transaction_fee=models.FloatField(null=True,validators=[MinValueValidator(0),MaxValueValidator(100.0)])

@@ -60,7 +60,8 @@ class TransactionHistory(models.Model):
     transaction_id=models.CharField(db_index=True,null=True,max_length=20)
     receipt=models.FileField(upload_to=upload_to,null=True,blank=True)
     initiated_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="user_transactions",db_index=True)
-    account_type=models.CharField(default="CapySafe",max_length=30,choices=ACCOUNT_TYPE)
+    received_by=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="reciever",db_index=True,null=True)
+    account_type=models.CharField(max_length=30,choices=ACCOUNT_TYPE,null=True)
     transaction_type=models.CharField(default="deposit",max_length=30,choices=TRANSACTION_TYPE)
     status=models.CharField(max_length=20,default="pending",choices=WITHDRAWAL_STATUS)
     amount=models.DecimalField(max_digits=20,decimal_places=2,default=0.00) #amount deposited or transfered
@@ -70,7 +71,6 @@ class TransactionHistory(models.Model):
     deposit_percentage=models.FloatField(null=True,validators=[MinValueValidator(0.1),MaxValueValidator(1.0)])
     inital_deposit=models.DecimalField(max_digits=20,decimal_places=2,null=True)
     pay_off_amount=models.DecimalField(max_digits=20,decimal_places=2,null=True)
-    amount_repaid=models.DecimalField(max_digits=20,decimal_places=2,null=True)
     contract_duration=models.CharField(max_length=300,null=True) #
     repayment_schedule=models.CharField(max_length=300,null=True) #
     transaction_fee=models.FloatField(null=True,validators=[MinValueValidator(0),MaxValueValidator(100.0)])

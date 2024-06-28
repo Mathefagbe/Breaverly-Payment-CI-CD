@@ -53,7 +53,6 @@ class TransactionWriteSerializer(serializers.ModelSerializer):
         fields=[
             "receipt",
             "account_type",
-            "transaction_type",
             "amount",
             "currency",
             "payment_gateway",
@@ -62,10 +61,6 @@ class TransactionWriteSerializer(serializers.ModelSerializer):
         extra_kwargs={
             "account_type":{
                 "required":True
-            },
-            "transaction_type":{
-                "required":False,
-                "default":"deposit"
             },
             "amount":{
                 "required":True
@@ -83,7 +78,6 @@ class TopUpTransactionWriteSerializer(serializers.ModelSerializer):
         fields=[
             "receipt",
             "account_type",
-            "transaction_type",
             "amount",
             "currency",
             "payment_gateway",
@@ -93,13 +87,12 @@ class TopUpTransactionWriteSerializer(serializers.ModelSerializer):
             "account_type":{
                 "required":True
             },
-            "transaction_type":{
-                "required":False,
-                "default":"top_up"
-            },
             "amount":{
                 "required":True
             },
+            "transaction_fee":{
+                "default":0.97
+            }
         }
 
     def validate(self, attrs):
@@ -194,4 +187,10 @@ class ChangeTransactionStatusSerializer(serializers.ModelSerializer):
         ]
 
 class AmountSerializer(serializers.Serializer):
-    amount=serializers.DecimalField(max_digits=10,decimal_places=2)
+    amount=serializers.DecimalField(max_digits=10,decimal_places=2,required=True)
+
+
+class TransferToBeaverlyMemberSerializer(serializers.Serializer):
+    amount=serializers.DecimalField(max_digits=10,decimal_places=2,required=True)
+    full_name=serializers.CharField()
+    recipient_email=serializers.EmailField(required=True)

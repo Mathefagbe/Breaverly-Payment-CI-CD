@@ -20,7 +20,7 @@ from drf_yasg.openapi import IN_QUERY, Parameter
 from beaverly_api import permissions as app_permissions
 
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
-PERMISSION_MESSAGE="PERMISSION DENIED"
+PERMISSION_MESSAGE="PERMISSION DENIED ONLY ADMIN CAN HAVE ACCESS"
 
 class CreateCapyMaxAccountApiView(APIView):
     def post(self,request):
@@ -56,7 +56,7 @@ class CreateCapyMaxAccountApiView(APIView):
                 "message":"CapyMax Account fetch Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)  
-        except CapySafeAccount.DoesNotExist as e:
+        except CapyMaxAccount.DoesNotExist as e:
             res={
                 "status":"Failed",
                 "data":None,

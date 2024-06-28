@@ -9,9 +9,12 @@ from .serializers import (
     ChangeTransactionStatusSerializer,
     ContractDurationSerilaizer,
     RepaymentScheduleSerilaizer,
-    AmountSerializer
+    AmountSerializer,
+    TransferToBeaverlyMemberSerializer,
+    UserReadTransactionSerializer
 
 )
+from django.contrib.auth import get_user_model
 from decimal import Decimal
 from drf_yasg.openapi import IN_QUERY, Parameter
 from itertools import chain
@@ -25,11 +28,11 @@ from .models import (
 )
 from django.db.models import Q
 from beaverly_api import permissions as app_permissions
-from .helper import generate_invoice_id,expire_date
+from .helper import generate_invoice_id,expire_date,capyBoostTransaction
 from django.db import transaction
-from dateutil.relativedelta import relativedelta
 from beaverly_api.models import CapyBoostBalance,CapySafeAccount,CapyMaxAccount
 from decimal import Decimal
+
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
 
@@ -50,6 +53,7 @@ class DepositApiView(APIView):
                 TransactionHistory.objects.create(
                     **serializer.validated_data,
                     initiated_by=request.user,
+                    transaction_type="deposit",
                     transaction_id=generate_invoice_id(),
                     expire_date=expire_date(durations.contract_duration),
                     credited_amount=serializer.validated_data["amount"]
@@ -203,36 +207,17 @@ class TopUpDepositApiView(APIView):
                 deposit_amount=serializer.validated_data["amount"]
                 loan=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user,expire_date__isnull=False)
                 # # check if the top up amount is up to the payoff amount
+                net_amount=deposit_amount - Decimal(serializer.validated_data["transaction_fee"])
                 if loan and account_type == "capysafe":
-                    # if loan[0].pay_off_amount:
-                    if loan[0].remaining_balance == deposit_amount:
-                        balance=loan[0].remaining_balance - deposit_amount
-                        loan[0].remaining_balance=balance #if the money coming and the loan are the same
-                        loan[0].expire_date=None
-                        credited_amount=0.00
-                        amount_repaid = deposit_amount - credited_amount
-                        loan[0].save()
-                    if  loan[0].remaining_balance > deposit_amount:
-                        balance=loan[0].remaining_balance - deposit_amount #if the loan is more than the depost
-                        loan[0].remaining_balance=balance
-                        credited_amount=0.00
-                        amount_repaid = deposit_amount - credited_amount
-                        loan[0].save()
-                    if loan[0].remaining_balance < deposit_amount:
-                        balance=deposit_amount - loan[0].remaining_balance #if the loan is less than the depost
-                        loan[0].remaining_balance=0.00
-                        loan[0].expire_date=None
-                        credited_amount=balance
-                        amount_repaid = deposit_amount - credited_amount
-                        loan[0].save()
+                    credited_amount=capyBoostTransaction(loan,net_amount)
                 #todo check if user has leaverage before top
                 TransactionHistory.objects.create(
                     **serializer.validated_data,
                     initiated_by=request.user,
+                    transaction_type="top_up",
                     transaction_id=generate_invoice_id(),
-                    amount_repaid=amount_repaid if loan else None,
-                    credited_amount= (credited_amount* Decimal(serializer.validated_data["transaction_fee"]))
-                      if loan else (serializer.validated_data["amount"] * Decimal(serializer.validated_data["transaction_fee"]))
+                    credited_amount= (credited_amount)
+                      if loan else (net_amount)
                 )
                 res={
                     "status":"Success",
@@ -259,6 +244,7 @@ class LeaverageDepositApiView(APIView):
                 serializer=LeaverageTransactionWriteSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 repayment_schedule=serializer.validated_data["repayment_schedule"]
+                payback_amount=serializer.validated_data.pop("pay_off_amount")
 
                 repayment=RepaymentSchedule.objects.get(title__iexact=repayment_schedule)
                 #check if the user has any pending load
@@ -272,7 +258,8 @@ class LeaverageDepositApiView(APIView):
                     transaction_id=generate_invoice_id(),
                     expire_date=expire_date(repayment.repayment_duration),
                     transaction_fee=repayment.transaction_fee,
-                    credited_amount=serializer.validated_data["amount"] * Decimal(repayment.transaction_fee)
+                    credited_amount=serializer.validated_data["amount"],
+                    pay_off_amount=payback_amount + Decimal(repayment.transaction_fee) #payback amount
                 )
 
                 #update the expire date for the user contract
@@ -288,9 +275,9 @@ class LeaverageDepositApiView(APIView):
                         "transaction_fee":transaction_detail.transaction_fee,
                         "deposit_percentage":transaction_detail.deposit_percentage,
                         "inital_deposit":transaction_detail.inital_deposit,
-                        "loan_amount":transaction_detail.pay_off_amount, #payoffamount
+                        "loan_amount":payback_amount, #payoffamount
                         "expire_date":transaction_detail.expire_date,
-                        "remaining_balance":transaction_detail.pay_off_amount
+                        "payoff_amount":transaction_detail.pay_off_amount
                     }
                 )
                 #update that user capboost balance
@@ -365,26 +352,26 @@ class SellCapySafePortFollioApiView(APIView):
                     raise RuntimeError("The amount you enter is more than your balance on this account")
                 account.balance = account.balance - amount
                 account.save()
-               
+
                 obj,created=Withdrawals.objects.get_or_create(
                     customer=request.user,
                     defaults={
-                        "customer_code":account.customer_code,
+                        # "customer_code":account.customer_code,
                         "customer":request.user,
-                        "balance":amount * Decimal(0.98) 
+                        "balance":amount - Decimal(0.98) 
                     }
                 )
                 if not created: #get the object
-                    obj.balance +=amount * Decimal(0.98)
+                    obj.balance +=(amount - Decimal(0.98))
                     obj.save()
 
                 TransactionHistory.objects.create(
                     initiated_by=request.user,
                     transaction_id=generate_invoice_id(),
                     account_type="CapySafe",
-                    transaction_type="withdrawal",
+                    transaction_type="sell_portfolio",
                     amount=amount,
-                    credited_amount=amount * Decimal(0.98),
+                    credited_amount= amount - Decimal(0.98),
                     status="successful"
                 )
                 res={
@@ -425,21 +412,25 @@ class SellCapyMAxPortFollioApiView(APIView):
                 account.balance = account.balance - amount
                 account.save()
 
-                obj,created=Withdrawals.objects.update_or_create(
+                obj,created=Withdrawals.objects.get_or_create(
                     customer=request.user,
                     defaults={
-                        "customer_code":account.customer_code,
+                        # "customer_code":account.customer_code,
                         "customer":request.user,
-                        "balance":amount * 0.98 if created else (amount + obj.balance) * 0.98
+                        "balance":amount - Decimal(0.98) 
                     }
                 )
+                if not created: #get the object
+                    obj.balance +=(amount - Decimal(0.98))
+                    obj.save()
+
                 TransactionHistory.objects.create(
                     initiated_by=request.user,
                     transaction_id=generate_invoice_id(),
                     account_type="CapyMax",
-                    transaction_type="withdrawal",
+                    transaction_type="sell_portfolio",
                     amount=amount,
-                    credited_amount=amount * 0.98,
+                    credited_amount=amount - Decimal(0.98),
                     status="successful"
                 )
                 res={
@@ -455,6 +446,104 @@ class SellCapyMAxPortFollioApiView(APIView):
                 "message":"Account Not Found"
             }
             return Response(res,status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+class FetchRecipiantFullDetailsApiView(APIView):
+    def get(self,request,recipient_email):
+        try:
+            user=get_user_model().objects.get(email=recipient_email)
+            res={
+                    "status":"Success",
+                    "data":user.full_name,
+                    "message":"Customer details fetch"
+                }
+            return Response(res,status=status.HTTP_201_CREATED)
+        except get_user_model().DoesNotExist:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"Invalid Email Customer Doesn't Exist"
+            }
+            return Response(res,status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+            
+class TransferToBeaverlyMemberApiView(APIView):
+
+    @swagger_auto_schema(
+            request_body=TransferToBeaverlyMemberSerializer
+    )
+    def post(self,request):
+        try:
+            with transaction.atomic():
+                serializer=TransferToBeaverlyMemberSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                email=serializer.validated_data["recipient_email"]
+                amount=serializer.validated_data["amount"]
+
+                sender_balance=Withdrawals.objects.get(customer=request.user)
+
+                if amount > sender_balance.balance:
+                    raise RuntimeError("Insufficient withdrawable balance")
+                #remove the money from user withdrawal balance
+                sender_balance.balance -= amount
+                sender_balance.save()
+                sent_amount=amount
+
+                loan=CapyBoostBalance.objects.filter(customer=request.user,expire_date__isnull=False)
+                if loan:
+                    sent_amount=capyBoostTransaction(loan,amount)
+                #check if the user has loan
+
+                recipient=get_user_model().objects.get(email=email)
+                #add the money to other user withdrawal acount
+                obj,created=Withdrawals.objects.get_or_create(
+                    customer=recipient,
+                    defaults={
+                        "customer":recipient,
+                        "balance":sent_amount
+                    }
+                )
+                #if he has money in it before update is money
+                if not created:
+                    obj.balance +=sent_amount
+                    obj.save()
+                #log the transaction
+                TransactionHistory.objects.create(
+                    initiated_by=request.user,
+                    transaction_id=generate_invoice_id(),
+                    transaction_type="Transfer",
+                    amount=amount,
+                    credited_amount=sent_amount,
+                    status="successful",
+                    received_by=recipient
+                )
+                res={
+                    "status":"Success",
+                    "data":None,
+                    "message":"Transfer Successful"
+                }
+                return Response(res,status=status.HTTP_201_CREATED)
+
+        except Withdrawals.DoesNotExist as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":""
+            }
+            return Response(res,status=status.HTTP_404_NOT_FOUND)
+
         except Exception as e:
             res={
                 "status":"Failed",

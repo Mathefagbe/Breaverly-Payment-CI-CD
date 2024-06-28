@@ -8,7 +8,7 @@ from .models import (KycDetails,KycDocumentImage,KycSelfie,
                      )
 from drf_extra_fields.fields import Base64ImageField,Base64FileField
 from beaverly_payment.models import Withdrawals
-
+from decimal import Decimal
 class Base64ImagesField(Base64ImageField):
     class Meta:
         swagger_schema_fields = {
@@ -145,7 +145,17 @@ class CapySafeAccountReadSerializer(serializers.ModelSerializer):
     def get_networth(self,obj):
         capyboost=CapyBoostBalance.objects.select_related("customer").filter(customer=obj.customer).first()
         capymax=CapyMaxAccount.objects.select_related("customer").filter(customer=obj.customer).first()
-        net=(obj.balance + capymax.balance) - capyboost.remaining_balance
+        withdrawal=Withdrawals.objects.select_related("customer").filter(customer=obj.customer).first()
+        capyboost_balance=Decimal(0.00)
+        capymax_balance=Decimal(0.00)
+        withdrawal_balance=Decimal(0.00)
+        if capyboost:
+            capyboost_balance=capyboost.payoff_amount
+        if capymax:
+            capymax_balance=capymax.balance
+        if withdrawal:
+            withdrawal_balance=withdrawal.balance
+        net=(obj.balance + capymax_balance + withdrawal_balance) - capyboost_balance
         return net
 
 
@@ -158,9 +168,20 @@ class CapyMaxAccountReadSerializer(serializers.ModelSerializer):
         depth=1
 
     def get_networth(self,obj):
-        capyboost=CapyBoostBalance.objects.select_related("customer").filter(customer=obj.customer).first()
+        # capyboost=CapyBoostBalance.objects.select_related("customer").filter(customer=obj.customer).first()
         capysafe=CapySafeAccount.objects.select_related("customer").filter(customer=obj.customer).first()
-        net=(obj.balance + capysafe.balance) - capyboost.remaining_balance
+        withdrawal=Withdrawals.objects.select_related("customer").filter(customer=obj.customer).first()
+        # capyboost_balance=Decimal(0.00)
+        capysafe_balance=Decimal(0.00)
+        withdrawal_balance=Decimal(0.00)
+        # if capyboost:
+        #     capyboost_balance=capyboost.remaining_balance
+        if capysafe:
+            capysafe_balance=capysafe.balance
+        if withdrawal:
+            withdrawal_balance=withdrawal.balance
+        net=(obj.balance + capysafe_balance + withdrawal_balance)
+        # - capyboost_balance
         return net
 
 class CapyBoostBalanceReadSerializer(serializers.ModelSerializer):
