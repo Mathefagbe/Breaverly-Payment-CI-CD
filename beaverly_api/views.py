@@ -126,18 +126,18 @@ class ProfileAccount(APIView):
                     "data":[
                         {
                         "name":"CapySafe",
-                        "amount":capysafe.balance,
-                        "expire_date":capysafe.expire_date
+                        "amount":capysafe.balance if capysafe else 0.0,
+                        "expire_date":capysafe.expire_date if capysafe else None
                         },
                         {
                         "name":"CapyMax",
-                        "amount":capymax.balance,
-                        "expire_date":capymax.expire_date
+                        "amount":capymax.balance if capymax else 0.0,
+                        "expire_date":capymax.expire_date if capymax else None
                         },
                         {
                         "name":"CapyBoost",
-                        "amount":capyboot.remaining_balance,
-                        "expire_date":capyboot.expire_date
+                        "amount":capyboot.payoff_amount if capyboot else 0.0,
+                        "expire_date":capyboot.expire_date if capyboot else None
                         }
                 ],
                 "message":"customer account fetched successfull"

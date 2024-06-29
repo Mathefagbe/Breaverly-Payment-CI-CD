@@ -73,6 +73,7 @@ class TransactionHistory(models.Model):
     pay_off_amount=models.DecimalField(max_digits=20,decimal_places=2,null=True)
     contract_duration=models.CharField(max_length=300,null=True) #
     repayment_schedule=models.CharField(max_length=300,null=True) #
+    bank_details=models.JSONField(null=True)
     transaction_fee=models.FloatField(null=True,validators=[MinValueValidator(0),MaxValueValidator(100.0)])
     expire_date=models.DateField(null=True)
     created_at=models.DateTimeField(auto_now_add=True)

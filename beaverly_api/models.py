@@ -106,7 +106,6 @@ class KycDetails(models.Model):
     business_address=models.TextField()
     employment_status=models.CharField(max_length=200,null=True)
     source_of_fund=models.CharField(max_length=200,null=True)
-    # has_verified=models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
 
@@ -120,7 +119,6 @@ class CapyBoostBalance(models.Model):
     transaction_fee=models.FloatField(null=True,validators=[MinValueValidator(0),MaxValueValidator(100.0)])
     deposit_percentage=models.FloatField(null=True,validators=[MinValueValidator(0.1),MaxValueValidator(1.0)])
     inital_deposit=models.DecimalField(max_digits=20,decimal_places=2,null=True)
-    loan_amount=models.DecimalField(max_digits=20,decimal_places=2,null=True)
     expire_date=models.DateField(null=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)

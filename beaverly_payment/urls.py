@@ -11,7 +11,10 @@ from .views import (
     SellCapyMAxPortFollioApiView,
     SellCapySafePortFollioApiView,
     FetchRecipiantFullDetailsApiView,
-    TransferToBeaverlyMemberApiView
+    TransferToBeaverlyMemberApiView,
+    WithdrawalAPiView,
+    FetchMyBankDetailsAPiView,
+    BalancesApiView
 )
 
 urlpatterns = [
@@ -32,6 +35,12 @@ urlpatterns = [
     url("sell_capyMax/portfolio/",SellCapyMAxPortFollioApiView.as_view()),
 
     url("fetch/recipient_email/<str:recipient_email>/",FetchRecipiantFullDetailsApiView.as_view()),
-    url("transfer/",TransferToBeaverlyMemberApiView.as_view())
+    url("transfer/",TransferToBeaverlyMemberApiView.as_view()),
+
+    url("withdrawal/",WithdrawalAPiView.as_view()),
+    url("fetch/my/bank_detail/",FetchMyBankDetailsAPiView.as_view()),
+
+    url("balance/",BalancesApiView.as_view())
 
 ]
+

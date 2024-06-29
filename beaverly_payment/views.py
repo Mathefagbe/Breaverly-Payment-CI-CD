@@ -11,7 +11,8 @@ from .serializers import (
     RepaymentScheduleSerilaizer,
     AmountSerializer,
     TransferToBeaverlyMemberSerializer,
-    UserReadTransactionSerializer
+    UserReadTransactionSerializer,
+    WithdrawalSerializer
 
 )
 from django.contrib.auth import get_user_model
@@ -24,7 +25,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 from .models import (
-    TransactionHistory,ContractDuration,RepaymentSchedule,Withdrawals
+    TransactionHistory,ContractDuration,RepaymentSchedule,Withdrawals,PendingWithdrawals
 )
 from django.db.models import Q
 from beaverly_api import permissions as app_permissions
@@ -47,9 +48,32 @@ class DepositApiView(APIView):
                 serializer=TransactionWriteSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 contract_duration=serializer.validated_data["contract_duration"]
+                account_type=serializer.validated_data["account_type"]
 
                 #get the duration from the table
                 durations=ContractDuration.objects.get(title__iexact=contract_duration)
+                if account_type == "CapySafe":
+                    obj,created=CapySafeAccount.objects.get_or_create(
+                        customer=request.user,
+                        defaults={
+                            "expire_date":expire_date(durations.contract_duration)
+                        }
+                    )
+                    if not created:
+                        obj.expire_date=expire_date(durations.contract_duration)
+                        obj.save()
+
+                if account_type == "CapyMax":
+                    obj,created=CapyMaxAccount.objects.get_or_create(
+                        customer=request.user,
+                        defaults={
+                            "expire_date":expire_date(durations.contract_duration)
+                        }
+                    )
+                    if not created:
+                        obj.expire_date=expire_date(durations.contract_duration)
+                        obj.save()
+
                 TransactionHistory.objects.create(
                     **serializer.validated_data,
                     initiated_by=request.user,
@@ -64,6 +88,13 @@ class DepositApiView(APIView):
                     "message":"Desposit Successful"
                 }
                 return Response(res,status=status.HTTP_201_CREATED)
+        except ContractDuration.DoesNotExist as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"Wrong Contract Duration"
+            }
+            return Response(res,status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             res={
                 "status":"Failed",
@@ -259,7 +290,7 @@ class LeaverageDepositApiView(APIView):
                     expire_date=expire_date(repayment.repayment_duration),
                     transaction_fee=repayment.transaction_fee,
                     credited_amount=serializer.validated_data["amount"],
-                    pay_off_amount=payback_amount + Decimal(repayment.transaction_fee) #payback amount
+                    pay_off_amount=payback_amount #payback amount
                 )
 
                 #update the expire date for the user contract
@@ -275,9 +306,8 @@ class LeaverageDepositApiView(APIView):
                         "transaction_fee":transaction_detail.transaction_fee,
                         "deposit_percentage":transaction_detail.deposit_percentage,
                         "inital_deposit":transaction_detail.inital_deposit,
-                        "loan_amount":payback_amount, #payoffamount
                         "expire_date":transaction_detail.expire_date,
-                        "payoff_amount":transaction_detail.pay_off_amount
+                        "payoff_amount":payback_amount
                     }
                 )
                 #update that user capboost balance
@@ -290,6 +320,14 @@ class LeaverageDepositApiView(APIView):
                     "message":"Leaverage Desposit Successful"
                 }
                 return Response(res,status=status.HTTP_201_CREATED)
+        except RepaymentSchedule.DoesNotExist as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"Invalid RepaymentSchedule"
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
         except Exception as e:
             res={
                 "status":"Failed",
@@ -544,6 +582,134 @@ class TransferToBeaverlyMemberApiView(APIView):
             }
             return Response(res,status=status.HTTP_404_NOT_FOUND)
 
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class WithdrawalAPiView(APIView):
+    @swagger_auto_schema(
+            request_body=WithdrawalSerializer
+    )
+    def post(self,request):
+        try:
+            with transaction.atomic():
+                serializer=WithdrawalSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                amount=serializer.validated_data.pop("amount")
+
+                net_amount= amount- Decimal(0.97) #transaction fee
+
+                #withdrawal money from withdrawal balance
+                sender_balance=Withdrawals.objects.get(customer=request.user)
+
+                if amount > sender_balance.balance:
+                    raise RuntimeError("Insufficient withdrawable balance")
+                #remove the money from user withdrawal balance
+                sender_balance.balance -= amount
+                sender_balance.save()
+                
+                #check if he has any leaverage
+                loan=CapyBoostBalance.objects.filter(customer=request.user,expire_date__isnull=False)
+                if loan:
+                    sent_amount=capyBoostTransaction(loan,net_amount)
+
+
+                #check if the user has a pending balance he can sent to pending withdrawal
+                obj,created=PendingWithdrawals.objects.get_or_create(
+                    customer=request.user,
+                    defaults={
+                        "balance":sent_amount if loan else net_amount
+                    }
+                )
+                if not created:
+                    if obj.balance != Decimal(0.00):
+                        raise RuntimeError("You have pending withdrawal that has not been settled yet")
+                    obj.balance += sent_amount if loan else net_amount
+                    obj.status="pending"
+                    obj.save()
+                #if he has a leaverage the leaverage is remove first before it enters pending withdrawal
+
+                #log transaction
+                TransactionHistory.objects.create(
+                    initiated_by=request.user,
+                    transaction_id=generate_invoice_id(),
+                    transaction_type="withdrawal",
+                    amount=amount,
+                    credited_amount=sent_amount if loan else net_amount,
+                    status="pending",
+                    bank_details=serializer.validated_data,
+                    transaction_fee=0.97
+                    
+                )
+                res={
+                        "status":"Success",
+                        "data":None,
+                        "message":"Withdrawal Successful"
+                    }
+                return Response(res,status=status.HTTP_201_CREATED)
+        except Exception  as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class FetchMyBankDetailsAPiView(APIView):
+    def get(self,request):
+        try:
+            data=request.user
+            res={
+                "status":"Success",
+                "data":{
+                    "account_name":data.account_name,
+                    "account_number":data.account_number,
+                    "bank_name":data.bank_name
+                },
+                "message":"Bank Details Fetched Successfully"
+            }
+            return Response(res,status=status.HTTP_201_CREATED)
+        except Exception  as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+
+class BalancesApiView(APIView):
+    def get(self,request):
+        try:
+            pending=PendingWithdrawals.objects.select_related("customer").filter(customer=request.user).first()
+            loan=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user).first()
+            withdrawal=Withdrawals.objects.select_related("customer").filter(customer=request.user).first()
+            res={
+                    "status":"success",
+                    "data":[
+                        {
+                        "name":"Pending",
+                        "amount":pending.balance if pending else 0.0,
+                  
+                        },
+                        {
+                        "name":"Withdrawal",
+                        "amount":withdrawal.balance if withdrawal else 0.0,
+            
+                        },
+                        {
+                        "name":"Capyboost",
+                        "amount":loan.payoff_amount if loan else 0.0,
+              
+                        }
+                ],
+                "message":"customer balance fetched successfull"
+            }
+            return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
             res={
                 "status":"Failed",

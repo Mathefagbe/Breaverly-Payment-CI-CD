@@ -114,7 +114,7 @@ class LeaverageTransactionWriteSerializer(serializers.ModelSerializer):
             "payment_gateway",
             "repayment_schedule",
             "deposit_percentage",
-            "inital_deposit",
+            "inital_deposit", #initial_deposite + transaction fee
             "pay_off_amount",
         ]
         extra_kwargs={
@@ -165,6 +165,7 @@ class UserReadTransactionSerializer(serializers.ModelSerializer):
 
 class TransactionReadSerializer(serializers.ModelSerializer):
     initiated_by=UserReadTransactionSerializer()
+    received_by=UserReadTransactionSerializer()
     class Meta:
         model=TransactionHistory
         fields="__all__"
@@ -194,3 +195,9 @@ class TransferToBeaverlyMemberSerializer(serializers.Serializer):
     amount=serializers.DecimalField(max_digits=10,decimal_places=2,required=True)
     full_name=serializers.CharField()
     recipient_email=serializers.EmailField(required=True)
+
+class WithdrawalSerializer(serializers.Serializer):
+    bank_name=serializers.CharField(required=True)
+    account_name=serializers.CharField(required=True)
+    account_number=serializers.CharField(required=True)
+    amount=serializers.DecimalField(max_digits=10,decimal_places=2,required=True)

@@ -33,7 +33,9 @@ default_role_permissions = [
             app_permissions.CAN_DELETE_TRANSACTION_HISTORY,
             app_permissions.CAN_VERIFY_CUSTOMER_KYC,
             app_permissions.CAN_VIEW_EARNING_HISTORY,
-            app_permissions.CAN_VIEW_TRANSACTION_HISTORY
+            app_permissions.CAN_VIEW_TRANSACTION_HISTORY,
+            app_permissions.CAN_VIEW_CUSTOMER_ACCOUNT,
+            
         ]
     },
         

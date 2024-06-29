@@ -29,7 +29,7 @@ class UserRegistrationView(APIView):
                 serializer=UserRegistrationWriteSerializer(data=request.data)
                 if serializer.is_valid(raise_exception=True):
                     data=serializer.save()
-                    data.role.add(Roles.objects.get(role="admin"))
+                    data.role.add(Roles.objects.get(role="customer"))
                     #Generate token after successfull registration
 
                 res={

@@ -18,6 +18,7 @@ from beaverly_api.serializer import (CapySafeAccountReadSerializer,CapyBoostBala
     CapyMaxAccountReadSerializer,UpdateCustomeAccountBalanceSerializer,UpdateCustomeCapyBoostBalanceSerializer)
 from drf_yasg.openapi import IN_QUERY, Parameter
 from beaverly_api import permissions as app_permissions
+from django.db.models import Q
 
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED ONLY ADMIN CAN HAVE ACCESS"
@@ -139,7 +140,7 @@ class CapyMaxCustomersAccountsApiview(APIView):
             search=request.GET.get("search",None)
             account=CapyMaxAccount.objects.select_related("customer").order_by("-created_at").all()
             if search:
-                account=account.filter(customer__email=search,customer_code=search)
+                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
             res={
                 "status":"success",
                 "data":CapyMaxAccountReadSerializer(account,many=True).data,
@@ -177,9 +178,11 @@ class CapySafeCustomersAccountsApiview(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             search=request.GET.get("search",None)
-            account=CapySafeAccount.objects.select_related("customer").order_by("-created_at").all()
+            account=CapySafeAccount.objects.select_related("customer").order_by("-created_at")
+
             if search:
-                account=account.filter(customer__email=search,customer_code=search)
+                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
+             
             res={
                 "status":"success",
                 "data":CapySafeAccountReadSerializer(account,many=True).data,
@@ -248,7 +251,7 @@ class UpdateCustomerCapysafeBalanceApiView(APIView):
             account=CapySafeAccount.objects.get(id=id)
             serializer=UpdateCustomeAccountBalanceSerializer(instance=account,data=request.data)
             serializer.is_valid(raise_exception=True)
-            account.balance=serializer.validated_data["balance"]
+            account.balance +=serializer.validated_data["balance"]
             account.save()
             res={
                 "status":"success",
@@ -318,7 +321,7 @@ class UpdateCustomerCapyMaxBalanceApiView(APIView):
             account=CapyMaxAccount.objects.get(id=id)
             serializer=UpdateCustomeAccountBalanceSerializer(instance=account,data=request.data)
             serializer.is_valid(raise_exception=True)
-            account.balance=serializer.validated_data["balance"]
+            account.balance +=serializer.validated_data["balance"]
             account.save()
             res={
                 "status":"success",
@@ -388,7 +391,7 @@ class UpdateCustomerCapyBoostBalanceApiView(APIView):
             account=CapyBoostBalance.objects.get(id=id)
             serializer=UpdateCustomeCapyBoostBalanceSerializer(instance=account,data=request.data)
             serializer.is_valid(raise_exception=True)
-            account.remaining_balance=serializer.validated_data["remaining_balance"]
+            account.payoff_amount +=serializer.validated_data["remaining_balance"]
             account.save()
             res={
                 "status":"success",
@@ -429,7 +432,7 @@ class CapyBoostCustomersBalanceApiview(APIView):
             search=request.GET.get("search",None)
             account=CapyBoostBalance.objects.select_related("customer").order_by("-created_at").all()
             if search:
-                account=account.filter(customer__email=search,customer_code=search)
+                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
             res={
                 "status":"success",
                 "data":CapyBoostBalanceReadSerializer(account,many=True).data,
