@@ -21,8 +21,8 @@ from drf_yasg.utils import swagger_auto_schema
 from beaverly_api.serializer import ImageUploadSerializer
 from beaverly_api.models import KycDetails,KycDocumentImage,KycSelfie,KycUtilityBills,LivePhotoKyc
 from beaverly_api import permissions as app_permissions
-
-
+from drf_yasg.openapi import IN_QUERY, Parameter
+import math
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
 
@@ -57,8 +57,16 @@ class UploadedKycPhotoApiView(APIView):
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
 class AdminGetUploadedKycPhotoApiView(APIView):
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+            ]
+    )
     def get(self,request):
         try:
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             #check Permission
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
@@ -68,9 +76,17 @@ class AdminGetUploadedKycPhotoApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=KycDocumentImage.objects.select_related("user").all()
+            paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(kycphoto)
             res={
                 "status":"success",
-                "data":KycImageReadSerializer(kycphoto,many=True,context={'request':request}).data,
+                "data":KycImageReadSerializer(paginated,many=True,context={'request':request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -145,10 +161,17 @@ class UploadedKycSelfieApiView(APIView):
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
 class AdminGetUploadedKycSelfieApiView(APIView):
-    parser_classes=[JSONParser,FormParser,MultiPartParser]
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+            ]
+    )
     def get(self,request):
         try:
             #check Permission
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
                         "status":"Failed",
@@ -157,9 +180,17 @@ class AdminGetUploadedKycSelfieApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=KycSelfie.objects.select_related("user").all()
+            paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(kycphoto)
             res={
                 "status":"success",
-                "data":KycSelfieReadSerializer(kycphoto,many=True,context={'request':request}).data,
+                "data":KycSelfieReadSerializer(paginated,many=True,context={'request':request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -235,9 +266,17 @@ class UploadedKycHoldingPhotoApiView(APIView):
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
 class AdminGetUploadedLivePhotoKycApiView(APIView):
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+            ]
+    )
     def get(self,request):
         try:
             #check Permission
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
                     res={
                         "status":"Failed",
@@ -246,9 +285,17 @@ class AdminGetUploadedLivePhotoKycApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=LivePhotoKyc.objects.select_related("user").all()
+            paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(kycphoto)
             res={
                 "status":"success",
-                "data":LivePhotoKycReadSerializer(kycphoto,many=True,context={'request':request}).data,
+                "data":LivePhotoKycReadSerializer(paginated,many=True,context={'request':request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -292,6 +339,7 @@ class AdminUpdateUploadedLivePhotoKycApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
+
 class UploadedKycUtilityBillApiView(APIView):
     parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
@@ -322,9 +370,17 @@ class UploadedKycUtilityBillApiView(APIView):
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
 class AdminGetUploadedKycUtilityBillApiView(APIView):
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+            ]
+    )
     def get(self,request):
         try:
             #check Permission
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
                     res={
                         "status":"Failed",
@@ -333,9 +389,17 @@ class AdminGetUploadedKycUtilityBillApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=KycUtilityBills.objects.select_related("user").all()
+            paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(kycphoto)
             res={
                 "status":"success",
-                "data":KycUtilityBillsReadSerializer(kycphoto,many=True,context={'request':request}).data,
+                "data":KycUtilityBillsReadSerializer(paginated,many=True,context={'request':request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"Photo Uploaded Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -376,6 +440,7 @@ class AdminUpdateUploadedKycUtilityBillApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
       
+
 class KycFormDetalsApiView(APIView):
     '''
     Kyc Details can be created or edited with this endpoint
