@@ -19,6 +19,8 @@ from beaverly_api.serializer import (CapySafeAccountReadSerializer,CapyBoostBala
 from drf_yasg.openapi import IN_QUERY, Parameter
 from beaverly_api import permissions as app_permissions
 from django.db.models import Q
+from lock.thread import lock
+import math
 
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED ONLY ADMIN CAN HAVE ACCESS"
@@ -125,7 +127,10 @@ class CreateCapySafeAccountApiView(APIView):
 class CapyMaxCustomersAccountsApiview(APIView):
     @swagger_auto_schema(
             manual_parameters=[
-                Parameter("search",IN_QUERY,type="str",required=False)
+                Parameter("search",IN_QUERY,type="str",required=False,
+                          description="admin can search with first_name,email and transaction_id"),
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
             ]
     )
     def get(self,request):
@@ -138,12 +143,22 @@ class CapyMaxCustomersAccountsApiview(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             search=request.GET.get("search",None)
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             account=CapyMaxAccount.objects.select_related("customer").order_by("-created_at").all()
             if search:
                 account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
+            paginated=account[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(account)
             res={
                 "status":"success",
-                "data":CapyMaxAccountReadSerializer(account,many=True).data,
+                "data":CapyMaxAccountReadSerializer(paginated,many=True).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"CapyMax Account fetch Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)  
@@ -165,7 +180,9 @@ class CapyMaxCustomersAccountsApiview(APIView):
 class CapySafeCustomersAccountsApiview(APIView):
     @swagger_auto_schema(
             manual_parameters=[
-                Parameter("search",IN_QUERY,type="str",required=False)
+                Parameter("search",IN_QUERY,type="str",required=False),
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
             ]
     )
     def get(self,request):
@@ -178,14 +195,23 @@ class CapySafeCustomersAccountsApiview(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             search=request.GET.get("search",None)
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             account=CapySafeAccount.objects.select_related("customer").order_by("-created_at")
 
             if search:
                 account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
-             
+            paginated=account[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(account)
             res={
                 "status":"success",
-                "data":CapySafeAccountReadSerializer(account,many=True).data,
+                "data":CapySafeAccountReadSerializer(paginated,many=True).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"CapySafe Account fetch Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)  
@@ -240,6 +266,7 @@ class UpdateCustomerCapysafeBalanceApiView(APIView):
             request_body=UpdateCustomeAccountBalanceSerializer
     )
     def put(self,request,id):
+        lock.acquire()
         try:
             if app_permissions.CAN_VIEW_CUSTOMER_ACCOUNT not in request.user.get_user_permissions():
                     res={
@@ -273,6 +300,8 @@ class UpdateCustomerCapysafeBalanceApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST) 
+        finally:
+             lock.release()
            
 class UpdateCustomerCapyMaxBalanceApiView(APIView):
     def get(self,request,id):
@@ -310,6 +339,7 @@ class UpdateCustomerCapyMaxBalanceApiView(APIView):
             request_body=UpdateCustomeAccountBalanceSerializer
     )
     def put(self,request,id):
+        lock.acquire()
         try:
             if app_permissions.CAN_VIEW_CUSTOMER_ACCOUNT not in request.user.get_user_permissions():
                     res={
@@ -343,6 +373,8 @@ class UpdateCustomerCapyMaxBalanceApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST) 
+        finally:
+             lock.release()
         
 class UpdateCustomerCapyBoostBalanceApiView(APIView):
     def get(self,request,id):
@@ -380,6 +412,7 @@ class UpdateCustomerCapyBoostBalanceApiView(APIView):
             request_body=UpdateCustomeCapyBoostBalanceSerializer
     )
     def put(self,request,id):
+        lock.acquire()
         try:
             if app_permissions.CAN_VIEW_CUSTOMER_ACCOUNT not in request.user.get_user_permissions():
                     res={
@@ -413,11 +446,15 @@ class UpdateCustomerCapyBoostBalanceApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST) 
+        finally:
+             lock.release()
         
 class CapyBoostCustomersBalanceApiview(APIView):
     @swagger_auto_schema(
             manual_parameters=[
-                Parameter("search",IN_QUERY,type="str",required=False)
+                Parameter("search",IN_QUERY,type="str",required=False),
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
             ]
     )
     def get(self,request):
@@ -430,12 +467,23 @@ class CapyBoostCustomersBalanceApiview(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             search=request.GET.get("search",None)
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             account=CapyBoostBalance.objects.select_related("customer").order_by("-created_at").all()
             if search:
                 account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
+
+            paginated=account[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(account)
             res={
                 "status":"success",
-                "data":CapyBoostBalanceReadSerializer(account,many=True).data,
+                "data":CapyBoostBalanceReadSerializer(paginated,many=True).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"CapyBoost Account fetch Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)  

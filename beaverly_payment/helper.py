@@ -29,27 +29,26 @@ def expire_date(duration):
     return now() + relativedelta(months=duration)
 
 
-
-def capyBoostTransaction(loan,deposit_amount):
-    if loan[0].payoff_amount == deposit_amount:
-        balance=loan[0].payoff_amount - deposit_amount
-        loan[0].payoff_amount=balance #if the money coming and the loan are the same
+def capyBoostTransaction(loan,deposit_amount,transaction_fee=0.98):
+    net_deposit_amount=deposit_amount-Decimal(transaction_fee) #remove the transaction fee from the amount inputted
+    if loan[0].payoff_amount == net_deposit_amount:
+        loan_amount_repaid=loan[0].payoff_amount
+        loan[0].payoff_amount -=net_deposit_amount
         loan[0].expire_date=None
-        credited_amount=Decimal(0.00)
+        credited_amount=Decimal(0.00) # The balance is wat is been credited or sent out to the other user
         loan[0].save()
-        return credited_amount
-    
-    if  loan[0].payoff_amount > deposit_amount:
-        balance=loan[0].payoff_amount - deposit_amount #if the loan is more than the depost
-        loan[0].payoff_amount=balance
-        credited_amount=Decimal(0.00)
+        return loan_amount_repaid,credited_amount
+    if  loan[0].payoff_amount > net_deposit_amount:
+        loan_amount_repaid=deposit_amount
+        loan[0].payoff_amount -= net_deposit_amount #if the loan is more than the depost
+        credited_amount=Decimal(0.00) # The balance is wat is been credited or sent out to the other user
         loan[0].save()
-        return credited_amount
-    
-    if loan[0].payoff_amount < deposit_amount:
-        balance=deposit_amount - loan[0].payoff_amount #if the loan is less than the depost
+        return loan_amount_repaid,credited_amount
+    if loan[0].payoff_amount < net_deposit_amount:
+        loan_amount_repaid=loan[0].payoff_amount
+        balance=net_deposit_amount - loan[0].payoff_amount # if the loan is less than the depost
         loan[0].payoff_amount=Decimal(0.00)
         loan[0].expire_date=None
-        credited_amount=balance
+        credited_amount=balance # The balance is wat is been credited or sent out to the other user
         loan[0].save()
-        return credited_amount
+        return loan_amount_repaid,credited_amount

@@ -15,6 +15,7 @@ from .serializers import (
     WithdrawalSerializer
 
 )
+import math
 from django.contrib.auth import get_user_model
 from decimal import Decimal
 from drf_yasg.openapi import IN_QUERY, Parameter
@@ -33,6 +34,7 @@ from .helper import generate_invoice_id,expire_date,capyBoostTransaction
 from django.db import transaction
 from beaverly_api.models import CapyBoostBalance,CapySafeAccount,CapyMaxAccount
 from decimal import Decimal
+from lock.thread import lock
 
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
@@ -43,6 +45,7 @@ class DepositApiView(APIView):
             request_body=TransactionWriteSerializer
     )
     def post(self,request):
+        lock.acquire()
         try:
             with transaction.atomic():
                 serializer=TransactionWriteSerializer(data=request.data)
@@ -80,7 +83,7 @@ class DepositApiView(APIView):
                     transaction_type="deposit",
                     transaction_id=generate_invoice_id(),
                     expire_date=expire_date(durations.contract_duration),
-                    credited_amount=serializer.validated_data["amount"]
+                    amount_settled=serializer.validated_data["amount"]
                 )
                 res={
                     "status":"Success",
@@ -102,24 +105,37 @@ class DepositApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
         
 class UserTransactionHistory(APIView):
-    # @swagger_auto_schema(
-    #         manual_parameters=[
-    #             Parameter("search",IN_QUERY,type="str",required=False)
-    #         ]
-    # )
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+            ]
+    )
     def get(self,request):
         try:
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             #todo paginations
             transaction_history=TransactionHistory.objects\
-                .select_related("initiated_by").filter(initiated_by=request.user).order_by("-updated_at")
+                .select_related("initiated_by","received_by").filter(initiated_by=request.user).order_by("-updated_at")
+            paginated=transaction_history[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(transaction_history)
             res={
                 "status":"Success",
-                "data":TransactionReadSerializer(transaction_history,many=True,context={"request":request}).data,
+                "data":TransactionReadSerializer(paginated,many=True,context={"request":request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"User Transaction History Fetch Successfully"
             }
-            return Response(res,status=status.HTTP_201_CREATED)
+            return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
             res={
                 "status":"Failed",
@@ -159,6 +175,7 @@ class AdminSingleTransactionApiView(APIView):
             request_body=ChangeTransactionStatusSerializer
     )
     def put(self,request,id):
+        lock.acquire()
         try:
             #Add permission
             if app_permissions.CAN_VIEW_TRANSACTION_HISTORY not in request.user.get_user_permissions():
@@ -185,16 +202,22 @@ class AdminSingleTransactionApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
 
 class AdminGetAllTransactionApiView(APIView):
     @swagger_auto_schema(
             manual_parameters=[
                 Parameter("search",IN_QUERY,type="str",required=False,
-                          description="admin can search with first_name,email and transaction_id")
+                          description="admin can search with first_name,email and transaction_id"),
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
             ]
     )
     def get(self,request):
         try:
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
             #Add permission
             if app_permissions.CAN_VIEW_TRANSACTION_HISTORY not in request.user.get_user_permissions():
                     res={
@@ -209,9 +232,18 @@ class AdminGetAllTransactionApiView(APIView):
             if search:
                 transaction_history=transaction_history\
                     .filter(Q(initiated_by__email=search)|Q(initiated_by__first_name=search)|Q(transaction_id=search))
+                
+            paginated=transaction_history[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(transaction_history)
             res={
                 "status":"Success",
-                "data":TransactionReadSerializer(transaction_history,many=True,context={"request":request}).data,
+                "data":TransactionReadSerializer(paginated,many=True,context={"request":request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
                 "message":"User Transaction History Fetch Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
@@ -228,26 +260,28 @@ class TopUpDepositApiView(APIView):
     @swagger_auto_schema(
             request_body=TopUpTransactionWriteSerializer
     )
-
     def post(self,request):
+        lock.acquire()
         try:
             with transaction.atomic():
                 serializer=TopUpTransactionWriteSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 account_type=serializer.validated_data["account_type"].lower()
                 deposit_amount=serializer.validated_data["amount"]
+                transaction_fee=serializer.validated_data["transaction_fee"]
                 loan=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user,expire_date__isnull=False)
                 # # check if the top up amount is up to the payoff amount
-                net_amount=deposit_amount - Decimal(serializer.validated_data["transaction_fee"])
+                net_amount=deposit_amount - Decimal(transaction_fee)
                 if loan and account_type == "capysafe":
-                    credited_amount=capyBoostTransaction(loan,net_amount)
+                    loan_amount_repaid,credited_amount=capyBoostTransaction(loan,deposit_amount,transaction_fee)
                 #todo check if user has leaverage before top
                 TransactionHistory.objects.create(
                     **serializer.validated_data,
                     initiated_by=request.user,
                     transaction_type="top_up",
+                    amount_repaid=loan_amount_repaid if loan else Decimal(0.00),
                     transaction_id=generate_invoice_id(),
-                    credited_amount= (credited_amount)
+                    amount_settled= (credited_amount)
                       if loan else (net_amount)
                 )
                 res={
@@ -263,6 +297,8 @@ class TopUpDepositApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
         
 class LeaverageDepositApiView(APIView):
     parser_classes=[JSONParser,FormParser,MultiPartParser]
@@ -270,6 +306,7 @@ class LeaverageDepositApiView(APIView):
             request_body=LeaverageTransactionWriteSerializer
     )
     def post(self,request):
+        lock.acquire()
         try:
             with transaction.atomic():
                 serializer=LeaverageTransactionWriteSerializer(data=request.data)
@@ -289,7 +326,7 @@ class LeaverageDepositApiView(APIView):
                     transaction_id=generate_invoice_id(),
                     expire_date=expire_date(repayment.repayment_duration),
                     transaction_fee=repayment.transaction_fee,
-                    credited_amount=serializer.validated_data["amount"],
+                    amount_settled=serializer.validated_data["amount"],
                     pay_off_amount=payback_amount #payback amount
                 )
 
@@ -335,6 +372,8 @@ class LeaverageDepositApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
         
 class ContractDurationApiView(APIView):
     def get(self,request):
@@ -379,6 +418,7 @@ class SellCapySafePortFollioApiView(APIView):
             request_body=AmountSerializer
     )
     def post(self,request):
+        lock.acquire()
         try:
             with transaction.atomic():
             #check if the amount enter is upto the avaliable amount
@@ -387,20 +427,26 @@ class SellCapySafePortFollioApiView(APIView):
                 amount=serializer.validated_data["amount"]
                 account=CapySafeAccount.objects.get(customer=request.user)
                 if amount > account.balance:
-                    raise RuntimeError("The amount you enter is more than your balance on this account")
-                account.balance = account.balance - amount
+                    raise RuntimeError("Insufficent Balance")
+                account.balance = account.balance - (amount + Decimal(0.98))
                 account.save()
 
+                #check if he has a loan or not
+                loan=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user,expire_date__isnull=False)
+
+                if loan:
+                    loan_amount_repaid,credited_amount=capyBoostTransaction(loan,amount,0.00) 
+                    #0.00 show that no transaction fee deducted from the loan
+                    
                 obj,created=Withdrawals.objects.get_or_create(
                     customer=request.user,
                     defaults={
-                        # "customer_code":account.customer_code,
                         "customer":request.user,
-                        "balance":amount - Decimal(0.98) 
+                        "balance":credited_amount if loan else amount
                     }
                 )
                 if not created: #get the object
-                    obj.balance +=(amount - Decimal(0.98))
+                    obj.balance +=credited_amount if loan else amount
                     obj.save()
 
                 TransactionHistory.objects.create(
@@ -409,7 +455,9 @@ class SellCapySafePortFollioApiView(APIView):
                     account_type="CapySafe",
                     transaction_type="sell_portfolio",
                     amount=amount,
-                    credited_amount= amount - Decimal(0.98),
+                    transaction_fee=0.98,
+                    amount_repaid=loan_amount_repaid if loan else Decimal(0.00),
+                    amount_settled= credited_amount if loan else amount,
                     status="successful"
                 )
                 res={
@@ -432,12 +480,15 @@ class SellCapySafePortFollioApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
 
 class SellCapyMAxPortFollioApiView(APIView):
     @swagger_auto_schema(
             request_body=AmountSerializer
     )
     def post(self,request):
+        lock.acquire()
         try:
             with transaction.atomic():
             #check if the amount enter is upto the avaliable amount
@@ -446,29 +497,32 @@ class SellCapyMAxPortFollioApiView(APIView):
                 amount=serializer.validated_data["amount"]
                 account=CapyMaxAccount.objects.get(customer=request.user)
                 if amount > account.balance:
-                    raise RuntimeError("The amount you enter is more than your balance on this account")
-                account.balance = account.balance - amount
+                    raise RuntimeError("Insufficient Balance")
+                account.balance = account.balance - (amount+ Decimal(0.98))
                 account.save()
+
+                #check if he has a loan or not
 
                 obj,created=Withdrawals.objects.get_or_create(
                     customer=request.user,
                     defaults={
                         # "customer_code":account.customer_code,
                         "customer":request.user,
-                        "balance":amount - Decimal(0.98) 
+                        "balance":amount
                     }
                 )
                 if not created: #get the object
-                    obj.balance +=(amount - Decimal(0.98))
+                    obj.balance +=amount
                     obj.save()
 
                 TransactionHistory.objects.create(
                     initiated_by=request.user,
                     transaction_id=generate_invoice_id(),
                     account_type="CapyMax",
+                    transaction_fee=0.98,
                     transaction_type="sell_portfolio",
                     amount=amount,
-                    credited_amount=amount - Decimal(0.98),
+                    amount_settled=amount,
                     status="successful"
                 )
                 res={
@@ -491,6 +545,8 @@ class SellCapyMAxPortFollioApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
 
 class FetchRecipiantFullDetailsApiView(APIView):
     def get(self,request,recipient_email):
@@ -523,6 +579,7 @@ class TransferToBeaverlyMemberApiView(APIView):
             request_body=TransferToBeaverlyMemberSerializer
     )
     def post(self,request):
+        lock.acquire()
         try:
             with transaction.atomic():
                 serializer=TransferToBeaverlyMemberSerializer(data=request.data)
@@ -541,10 +598,11 @@ class TransferToBeaverlyMemberApiView(APIView):
 
                 loan=CapyBoostBalance.objects.filter(customer=request.user,expire_date__isnull=False)
                 if loan:
-                    sent_amount=capyBoostTransaction(loan,amount)
+                    loan_amount_repaid,sent_amount=capyBoostTransaction(loan,amount,0.00)
                 #check if the user has loan
 
                 recipient=get_user_model().objects.get(email=email)
+                
                 #add the money to other user withdrawal acount
                 obj,created=Withdrawals.objects.get_or_create(
                     customer=recipient,
@@ -563,7 +621,8 @@ class TransferToBeaverlyMemberApiView(APIView):
                     transaction_id=generate_invoice_id(),
                     transaction_type="Transfer",
                     amount=amount,
-                    credited_amount=sent_amount,
+                    amount_repaid=loan_amount_repaid if loan else Decimal(0.00),
+                    amount_settled=sent_amount,
                     status="successful",
                     received_by=recipient
                 )
@@ -589,19 +648,22 @@ class TransferToBeaverlyMemberApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
         
 class WithdrawalAPiView(APIView):
     @swagger_auto_schema(
             request_body=WithdrawalSerializer
     )
     def post(self,request):
+        lock.acquire()
         try:
             with transaction.atomic():
                 serializer=WithdrawalSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 amount=serializer.validated_data.pop("amount")
 
-                net_amount= amount- Decimal(0.97) #transaction fee
+                #transaction fee
 
                 #withdrawal money from withdrawal balance
                 sender_balance=Withdrawals.objects.get(customer=request.user)
@@ -615,20 +677,20 @@ class WithdrawalAPiView(APIView):
                 #check if he has any leaverage
                 loan=CapyBoostBalance.objects.filter(customer=request.user,expire_date__isnull=False)
                 if loan:
-                    sent_amount=capyBoostTransaction(loan,net_amount)
+                    loan_amount_repaid,sent_amount=capyBoostTransaction(loan,amount,0.00)
 
 
                 #check if the user has a pending balance he can sent to pending withdrawal
                 obj,created=PendingWithdrawals.objects.get_or_create(
                     customer=request.user,
                     defaults={
-                        "balance":sent_amount if loan else net_amount
+                        "balance":sent_amount if loan else (amount - Decimal(0.97))
                     }
                 )
                 if not created:
                     if obj.balance != Decimal(0.00):
                         raise RuntimeError("You have pending withdrawal that has not been settled yet")
-                    obj.balance += sent_amount if loan else net_amount
+                    obj.balance += sent_amount if loan else (amount - Decimal(0.97))
                     obj.status="pending"
                     obj.save()
                 #if he has a leaverage the leaverage is remove first before it enters pending withdrawal
@@ -639,10 +701,11 @@ class WithdrawalAPiView(APIView):
                     transaction_id=generate_invoice_id(),
                     transaction_type="withdrawal",
                     amount=amount,
-                    credited_amount=sent_amount if loan else net_amount,
+                    amount_repaid=loan_amount_repaid if loan else Decimal(0.00),
+                    amount_settled=sent_amount if loan else (amount - Decimal(0.97)),
                     status="pending",
                     bank_details=serializer.validated_data,
-                    transaction_fee=0.97
+                    transaction_fee=0.97 #transaction fee
                     
                 )
                 res={
@@ -658,6 +721,8 @@ class WithdrawalAPiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        finally:
+            lock.release()
         
 class FetchMyBankDetailsAPiView(APIView):
     def get(self,request):
@@ -681,7 +746,6 @@ class FetchMyBankDetailsAPiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
-
 class BalancesApiView(APIView):
     def get(self,request):
         try:

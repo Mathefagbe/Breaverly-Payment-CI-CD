@@ -130,7 +130,9 @@ class Otp(models.Model):
     # objects=OTPManager()
 
 
-    
-
-
+# class Security(models.Model):
+#     customer=models.ForeignKey(User,on_delete=models.CASCADE,db_index=True)
+#     login_with_pin=models.BooleanField(default=False)
+#     login_with_biometrics=models.BooleanField(default=False)
+#     login_with_googleAuth=models.BooleanField(default=False)
 

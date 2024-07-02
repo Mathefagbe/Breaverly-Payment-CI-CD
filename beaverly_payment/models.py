@@ -65,12 +65,14 @@ class TransactionHistory(models.Model):
     transaction_type=models.CharField(default="deposit",max_length=30,choices=TRANSACTION_TYPE)
     status=models.CharField(max_length=20,default="pending",choices=WITHDRAWAL_STATUS)
     amount=models.DecimalField(max_digits=20,decimal_places=2,default=0.00) #amount deposited or transfered
-    credited_amount=models.DecimalField(max_digits=20,decimal_places=2,default=0.00) #amount deposited or transfered
+    # amount_charged=models.DecimalField(max_digits=20,decimal_places=2,default=0.00) 
+    amount_settled=models.DecimalField(max_digits=20,decimal_places=2,default=0.00) #amount deposited or transfered i.e netamount if loan is involved
+    amount_repaid=models.DecimalField(max_digits=20,decimal_places=2,default=0.00)
     currency=models.CharField(choices=CURRENCY,default="NG",max_length=20)
     payment_gateway=models.CharField(choices=GATEWAY,max_length=20,null=True)
-    deposit_percentage=models.FloatField(null=True,validators=[MinValueValidator(0.1),MaxValueValidator(1.0)])
+    deposit_percentage=models.FloatField(null=True,validators=[MinValueValidator(1),MaxValueValidator(100)])
     inital_deposit=models.DecimalField(max_digits=20,decimal_places=2,null=True)
-    pay_off_amount=models.DecimalField(max_digits=20,decimal_places=2,null=True)
+    pay_off_amount=models.DecimalField(max_digits=20,decimal_places=2,null=True) #payoffamount due to loan
     contract_duration=models.CharField(max_length=300,null=True) #
     repayment_schedule=models.CharField(max_length=300,null=True) #
     bank_details=models.JSONField(null=True)

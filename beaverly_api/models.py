@@ -131,7 +131,7 @@ class CapySafeAccount(models.Model):
     balance=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
     account_status = models.CharField(max_length=10, choices=ACCOUNT_STATUSES,default="ACTIVE")
     currency=models.CharField(max_length=10,default="NG",choices=CURRENCY)
-    pay_off_amount=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
+    # pay_off_amount=models.DecimalField(max_digits=100,decimal_places=2,default=0.00)
     expire_date=models.DateField(null=True)
     created_at=models.DateTimeField(auto_now_add=True)
     updated_at=models.DateTimeField(auto_now=True)
@@ -140,8 +140,7 @@ class CapySafeAccount(models.Model):
     @property
     def kyc_status(self):
         pass
-
-        
+      
 class CapyMaxAccount(models.Model):
     id=models.UUIDField(default=uuid.uuid4,primary_key=True,db_index=True)
     customer_code=models.CharField(max_length=100,null=True,unique=True,db_index=True)
@@ -167,3 +166,5 @@ class Bank(models.Model):
     country=models.CharField(max_length=100,null=True)
     active=models.BooleanField(default=False)
 
+
+#loginPin has to be encypted
