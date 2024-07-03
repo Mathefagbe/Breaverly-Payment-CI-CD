@@ -195,4 +195,4 @@ class UpdateCustomeAccountBalanceSerializer(serializers.Serializer):
     balance=serializers.DecimalField(max_digits=10,decimal_places=2)
 
 class UpdateCustomeCapyBoostBalanceSerializer(serializers.Serializer):
-    remaining_balance=serializers.DecimalField(max_digits=10,decimal_places=2)
+    payoff_amount=serializers.DecimalField(max_digits=10,decimal_places=2)

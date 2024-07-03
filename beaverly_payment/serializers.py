@@ -3,7 +3,7 @@ import PyPDF2
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import (
-                     TransactionHistory,ContractDuration,RepaymentSchedule
+                     TransactionHistory,ContractDuration,RepaymentSchedule,Withdrawals,PendingWithdrawals
                      )
 from drf_extra_fields.fields import Base64ImageField,Base64FileField
 
@@ -201,3 +201,20 @@ class WithdrawalSerializer(serializers.Serializer):
     account_name=serializers.CharField(required=True)
     account_number=serializers.CharField(required=True)
     amount=serializers.DecimalField(max_digits=10,decimal_places=2,required=True)
+
+
+class WithdrawalbalanceSerializer(serializers.ModelSerializer):
+    customer=UserReadTransactionSerializer()
+    class Meta:
+        model=Withdrawals
+        exclude=[
+            "customer_code"
+        ]
+
+class PendingWithdrawalbalanceSerializer(serializers.ModelSerializer):
+    customer=UserReadTransactionSerializer()
+    class Meta:
+        model=PendingWithdrawals
+        exclude=[
+            "customer_code"
+        ]

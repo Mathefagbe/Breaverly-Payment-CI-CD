@@ -35,6 +35,7 @@ default_role_permissions = [
             app_permissions.CAN_VIEW_EARNING_HISTORY,
             app_permissions.CAN_VIEW_TRANSACTION_HISTORY,
             app_permissions.CAN_VIEW_CUSTOMER_ACCOUNT,
+            app_permissions.CAN_VIEW_CUSTOMER_BALANCE
             
         ]
     },

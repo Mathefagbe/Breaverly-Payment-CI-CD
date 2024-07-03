@@ -23,6 +23,7 @@ from beaverly_api.models import KycDetails,KycDocumentImage,KycSelfie,KycUtility
 from beaverly_api import permissions as app_permissions
 from drf_yasg.openapi import IN_QUERY, Parameter
 import math
+from django.db.models import Q
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
 
@@ -61,12 +62,15 @@ class AdminGetUploadedKycPhotoApiView(APIView):
             manual_parameters=[
                 Parameter("page",IN_QUERY,type="int",required=False),
                 Parameter("limit",IN_QUERY,type="int",required=False),
+                Parameter("search",IN_QUERY,type="str",required=False,
+                          description="admin can search with first_name,email,last_name"),
             ]
     )
     def get(self,request):
         try:
             page=int(request.GET.get("page",1))
             limit=int(request.GET.get("limit",10))
+            search=request.GET.get("search",None)
             #check Permission
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
@@ -76,6 +80,8 @@ class AdminGetUploadedKycPhotoApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=KycDocumentImage.objects.select_related("user").all()
+            if search:
+                kycphoto=kycphoto.filter(Q(user__email__icontains=search)|Q(user__first_name=search)|Q(user__last_name=search))
             paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(kycphoto)
             res={
@@ -165,6 +171,8 @@ class AdminGetUploadedKycSelfieApiView(APIView):
             manual_parameters=[
                 Parameter("page",IN_QUERY,type="int",required=False),
                 Parameter("limit",IN_QUERY,type="int",required=False),
+                Parameter("search",IN_QUERY,type="str",required=False,
+                          description="admin can search with first_name,email,last_name"),
             ]
     )
     def get(self,request):
@@ -172,6 +180,7 @@ class AdminGetUploadedKycSelfieApiView(APIView):
             #check Permission
             page=int(request.GET.get("page",1))
             limit=int(request.GET.get("limit",10))
+            search=request.GET.get("search",None)
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_user_permissions():
                     res={
                         "status":"Failed",
@@ -180,6 +189,8 @@ class AdminGetUploadedKycSelfieApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=KycSelfie.objects.select_related("user").all()
+            if search:
+                kycphoto=kycphoto.filter(Q(user__email__icontains=search)|Q(user__first_name=search)|Q(user__last_name=search))
             paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(kycphoto)
             res={
@@ -270,6 +281,8 @@ class AdminGetUploadedLivePhotoKycApiView(APIView):
             manual_parameters=[
                 Parameter("page",IN_QUERY,type="int",required=False),
                 Parameter("limit",IN_QUERY,type="int",required=False),
+                Parameter("search",IN_QUERY,type="str",required=False,
+                          description="admin can search with first_name,email,last_name"),
             ]
     )
     def get(self,request):
@@ -277,6 +290,7 @@ class AdminGetUploadedLivePhotoKycApiView(APIView):
             #check Permission
             page=int(request.GET.get("page",1))
             limit=int(request.GET.get("limit",10))
+            search=request.GET.get("search",None)
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
                     res={
                         "status":"Failed",
@@ -285,6 +299,8 @@ class AdminGetUploadedLivePhotoKycApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=LivePhotoKyc.objects.select_related("user").all()
+            if search:
+                kycphoto=kycphoto.filter(Q(user__email__icontains=search)|Q(user__first_name=search)|Q(user__last_name=search))
             paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(kycphoto)
             res={
@@ -374,6 +390,8 @@ class AdminGetUploadedKycUtilityBillApiView(APIView):
             manual_parameters=[
                 Parameter("page",IN_QUERY,type="int",required=False),
                 Parameter("limit",IN_QUERY,type="int",required=False),
+                Parameter("search",IN_QUERY,type="str",required=False,
+                          description="admin can search with first_name,email,last_name"),
             ]
     )
     def get(self,request):
@@ -381,6 +399,7 @@ class AdminGetUploadedKycUtilityBillApiView(APIView):
             #check Permission
             page=int(request.GET.get("page",1))
             limit=int(request.GET.get("limit",10))
+            search=request.GET.get("search",None)
             if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
                     res={
                         "status":"Failed",
@@ -389,6 +408,8 @@ class AdminGetUploadedKycUtilityBillApiView(APIView):
                     }
                     return Response(res,status=status.HTTP_403_FORBIDDEN)
             kycphoto=KycUtilityBills.objects.select_related("user").all()
+            if search:
+                kycphoto=kycphoto.filter(Q(user__email__icontains=search)|Q(user__first_name=search)|Q(user__last_name=search))
             paginated=kycphoto[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(kycphoto)
             res={

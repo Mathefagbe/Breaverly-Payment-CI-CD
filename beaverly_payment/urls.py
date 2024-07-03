@@ -14,7 +14,10 @@ from .views import (
     TransferToBeaverlyMemberApiView,
     WithdrawalAPiView,
     FetchMyBankDetailsAPiView,
-    BalancesApiView
+    BalancesApiView,
+    WithdrawalBalanceApiView,
+    PendingWithdrawalBalanceApiView,
+    DeletePendingWithdrawalBalanceApiView
 )
 
 urlpatterns = [
@@ -40,7 +43,11 @@ urlpatterns = [
     url("withdrawal/",WithdrawalAPiView.as_view()),
     url("fetch/my/bank_detail/",FetchMyBankDetailsAPiView.as_view()),
 
-    url("balance/",BalancesApiView.as_view())
+    url("customer/balance/",BalancesApiView.as_view()),
 
+    url("withdrawal/balance/",WithdrawalBalanceApiView.as_view()),
+    url("pending/balance/",PendingWithdrawalBalanceApiView.as_view()),
+
+    url("remove/pending/balance/<uuid:id>/",DeletePendingWithdrawalBalanceApiView.as_view()),
 ]
 

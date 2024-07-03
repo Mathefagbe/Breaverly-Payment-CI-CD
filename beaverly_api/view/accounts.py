@@ -147,7 +147,7 @@ class CapyMaxCustomersAccountsApiview(APIView):
             limit=int(request.GET.get("limit",10))
             account=CapyMaxAccount.objects.select_related("customer").order_by("-created_at").all()
             if search:
-                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
+                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search)|Q(customer__first_name__icontains=search)|Q(customer__last_name__icontains=search))
             paginated=account[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(account)
             res={
@@ -200,7 +200,7 @@ class CapySafeCustomersAccountsApiview(APIView):
             account=CapySafeAccount.objects.select_related("customer").order_by("-created_at")
 
             if search:
-                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
+                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search)|Q(customer__first_name__icontains=search)|Q(customer__last_name__icontains=search))
             paginated=account[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(account)
             res={
@@ -424,7 +424,7 @@ class UpdateCustomerCapyBoostBalanceApiView(APIView):
             account=CapyBoostBalance.objects.get(id=id)
             serializer=UpdateCustomeCapyBoostBalanceSerializer(instance=account,data=request.data)
             serializer.is_valid(raise_exception=True)
-            account.payoff_amount +=serializer.validated_data["remaining_balance"]
+            account.payoff_amount +=serializer.validated_data["payoff_amount"]
             account.save()
             res={
                 "status":"success",
@@ -471,7 +471,7 @@ class CapyBoostCustomersBalanceApiview(APIView):
             limit=int(request.GET.get("limit",10))
             account=CapyBoostBalance.objects.select_related("customer").order_by("-created_at").all()
             if search:
-                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search))
+                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search)|Q(customer__first_name__icontains=search)|Q(customer__last_name__icontains=search))
 
             paginated=account[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(account)
@@ -501,3 +501,5 @@ class CapyBoostCustomersBalanceApiview(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+

@@ -12,7 +12,9 @@ from .serializers import (
     AmountSerializer,
     TransferToBeaverlyMemberSerializer,
     UserReadTransactionSerializer,
-    WithdrawalSerializer
+    WithdrawalSerializer,
+    WithdrawalbalanceSerializer,
+    PendingWithdrawalbalanceSerializer
 
 )
 import math
@@ -231,7 +233,7 @@ class AdminGetAllTransactionApiView(APIView):
                 .select_related("initiated_by").order_by("-updated_at")
             if search:
                 transaction_history=transaction_history\
-                    .filter(Q(initiated_by__email=search)|Q(initiated_by__first_name=search)|Q(transaction_id=search))
+                    .filter(Q(initiated_by__email=search)|Q(initiated_by__first_name=search)|Q(transaction_id=search)|Q(initiated_by__last_name=search))
                 
             paginated=transaction_history[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(transaction_history)
@@ -781,3 +783,124 @@ class BalancesApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+#withdrawal balance
+class WithdrawalBalanceApiView(APIView):
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+                Parameter("search",IN_QUERY,type="str",required=False),
+            ]
+    )
+    def get(self,request):
+        try:
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
+            if app_permissions.CAN_VIEW_CUSTOMER_BALANCE not in request.user.get_user_permissions():
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            search=request.GET.get("search",None)
+            withdrawal=Withdrawals.objects.select_related("customer").order_by("-updated_at")
+            if search:
+                withdrawal=withdrawal.filter(Q(customer__email=search)|Q(customer__first_name__icontains=search)|Q(customer__last_name__icontains=search))
+            paginated=withdrawal[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(withdrawal)
+            res={
+                "status":"Success",
+                "data":WithdrawalbalanceSerializer(paginated,many=True,context={"request":request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
+                "message":"User Withdrawal balance Fetch Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class PendingWithdrawalBalanceApiView(APIView):
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+                Parameter("search",IN_QUERY,type="str",required=False),
+            ]
+    )
+    def get(self,request):
+        try:
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
+            if app_permissions.CAN_VIEW_CUSTOMER_BALANCE not in request.user.get_user_permissions():
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            search=request.GET.get("search",None)
+            withdrawal=PendingWithdrawals.objects.select_related("customer").order_by("-updated_at")
+            if search:
+                withdrawal=withdrawal.filter(Q(customer__email=search)|Q(customer__first_name__icontains=search)|Q(customer__last_name__icontains=search))
+            paginated=withdrawal[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(withdrawal)
+            res={
+                "status":"Success",
+                "data":PendingWithdrawalbalanceSerializer(paginated,many=True,context={"request":request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
+                "message":"User PendingWithdrawal balance Fetch Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class DeletePendingWithdrawalBalanceApiView(APIView):
+    def delete(self,request,id):
+        try:
+            if app_permissions.CAN_VIEW_CUSTOMER_BALANCE not in request.user.get_user_permissions():
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            pending_withdrawal=PendingWithdrawals.objects.get(id=id)
+            pending_withdrawal.delete()
+            res={
+                "status":"Success",
+                "data":None,
+                "message":"Pending Withdrawal Remove Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+            
