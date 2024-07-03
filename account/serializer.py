@@ -3,6 +3,8 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainSerializer,TokenObtainPairSerializer
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from .models import Pins
+from django.contrib.auth.hashers import make_password, check_password
 
 User=get_user_model()
 
@@ -69,5 +71,42 @@ class PasswordResetSerializer(serializers.Serializer):
         if attrs["password"] == attrs["confirm_password"]:
             return super().validate(attrs)
         raise RuntimeError("Password does not match, Pleas re-enter password")
+    
+
+class PinsWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Pins
+        fields=[
+            "pin"
+        ]
+    
+    def create(self, validated_data):
+        if self.Meta.model.objects.filter(email=self.context["request"].user.email).exists():
+            raise RuntimeError("You have already setup your login pin")
+        hash_pin= make_password(validated_data["pin"])
+        pin=Pins.objects.create(
+            pin=hash_pin,
+            email=self.context["request"].user.email
+        )
+        return pin
+    
+
+class ChangePinsWriteSerializer(serializers.ModelSerializer):
+    old_pin=serializers.CharField(required=True)
+    class Meta:
+        model=Pins
+        fields=[
+            "pin",
+            "old_pin"
+        ]
+    
+    def update(self, instance, validated_data):
+        old_pin=validated_data["old_pin"]
+        new_pin=validated_data["pin"]
+        if not check_password(old_pin,encoded=instance.pin):
+            raise RuntimeError("Incorrect Old Pin")
+        instance.pin=make_password(new_pin)
+        instance.save()
+        return instance
     
 

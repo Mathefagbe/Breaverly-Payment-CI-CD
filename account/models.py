@@ -136,3 +136,10 @@ class Otp(models.Model):
 #     login_with_biometrics=models.BooleanField(default=False)
 #     login_with_googleAuth=models.BooleanField(default=False)
 
+
+class Pins(models.Model):
+    # customer=models.ForeignKey(User,on_delete=models.CASCADE,db_index=True)
+    email=models.CharField(max_length=200,null=True,blank=False,db_index=True)
+    pin=models.TextField(null=False,blank=False,db_index=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)

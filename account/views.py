@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 # Create your views here.
 from drf_yasg.utils import swagger_auto_schema
 from .serializer import (UserRegistrationWriteSerializer,EmailVerificationSerializer,TokenObtainSerializer,
-                         VerifiyOtpSerializer,PasswordResetSerializer,)
+                         VerifiyOtpSerializer,PasswordResetSerializer,PinsWriteSerializer,ChangePinsWriteSerializer)
 from rest_framework.response import Response
 from rest_framework import status
 from .helper import get_user_token
@@ -16,6 +16,8 @@ from django.utils.crypto import get_random_string
 from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 from beaverly_api.models import Roles
 from django.db import transaction
+from .models import Pins
+
 class UserRegistrationView(APIView):
     authentication_classes=[]
     permission_classes=[]
@@ -207,5 +209,54 @@ class VerifyOtpCodeAPiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
+class InputPinSerializerApiView(APIView):
 
+    @swagger_auto_schema(
+        request_body=PinsWriteSerializer
+    )
+    def post(self,request):
+        try:
+            serializer=PinsWriteSerializer(data=request.data,context={"request":request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            res={
+                "status":"success",
+                "data":None,
+                "message":"Login Pin Set Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
 
+class ChangePinSerializerApiView(APIView):
+
+    @swagger_auto_schema(
+        request_body=ChangePinsWriteSerializer
+    )
+    def post(self,request):
+        try:
+            instance=Pins.objects.filter(email=request.user.email).first()
+            if not instance:
+                raise RuntimeError("You have not setup a login pin yet")
+            serializer=ChangePinsWriteSerializer(instance=instance,data=request.data,context={"request":request})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            res={
+                "status":"success",
+                "data":None,
+                "message":"Login Pin Updated Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)

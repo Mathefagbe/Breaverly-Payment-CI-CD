@@ -5,7 +5,9 @@ from .views import (
                     UserRegistrationView,
                     LoginApiView,
                     PasswordResetApiView,
-                    AdminUserRegistrationView
+                    AdminUserRegistrationView,
+                    InputPinSerializerApiView,
+                    ChangePinSerializerApiView
                     )
 urlpatterns = [
     url("auth/register/",UserRegistrationView.as_view()),
@@ -14,5 +16,9 @@ urlpatterns = [
     url("auth/password/reset/",PasswordResetApiView.as_view()),
     url("auth/email/verification/",EmailVerificationApiView.as_view()),
     url("auth/otp/verification/",VerifyOtpCodeAPiView.as_view()),
+
+
+    url("set/login/pin/",InputPinSerializerApiView.as_view()),
+    url("update/login/pin/",ChangePinSerializerApiView.as_view()),
 
 ]
