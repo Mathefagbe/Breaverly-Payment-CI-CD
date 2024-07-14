@@ -17,6 +17,7 @@ from .serializers import (
     PendingWithdrawalbalanceSerializer
 
 )
+from notifications.emails import send_emails
 import math
 from django.contrib.auth import get_user_model
 from decimal import Decimal
@@ -41,6 +42,7 @@ from lock.thread import lock
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED"
 
+
 class DepositApiView(APIView):
     parser_classes=[JSONParser,FormParser,MultiPartParser]
     @swagger_auto_schema(
@@ -54,7 +56,7 @@ class DepositApiView(APIView):
                 serializer.is_valid(raise_exception=True)
                 contract_duration=serializer.validated_data["contract_duration"]
                 account_type=serializer.validated_data["account_type"]
-
+                
                 #get the duration from the table
                 durations=ContractDuration.objects.get(title__iexact=contract_duration)
                 if account_type == "CapySafe":
@@ -78,14 +80,32 @@ class DepositApiView(APIView):
                     if not created:
                         obj.expire_date=expire_date(durations.contract_duration)
                         obj.save()
-
-                TransactionHistory.objects.create(
+                
+                transactions=TransactionHistory.objects.create(
                     **serializer.validated_data,
                     initiated_by=request.user,
                     transaction_type="deposit",
                     transaction_id=generate_invoice_id(),
                     expire_date=expire_date(durations.contract_duration),
                     amount_settled=serializer.validated_data["amount"]
+                )
+                email=transactions.initiated_by.email
+                context={
+                    "full_name":transactions.initiated_by.full_name,
+                    "customer_name":transactions.initiated_by.full_name,
+                    "customer_email":email,
+                    "amount":transactions.amount,
+                    "settle_amount":transactions.amount_settled,
+                    "date":transactions.created_at.date(),
+                    "transaction_id":transactions.transaction_id,
+                    "transaction_type":transactions.transaction_type
+                }
+                send_emails(
+                    email=request.user.get_admins(),
+                    context=context,
+                    subject="Deposit Transaction".upper(),
+                    template_name="deposit.html",
+                    pdf_file=transactions.receipt
                 )
                 res={
                     "status":"Success",
@@ -277,7 +297,7 @@ class TopUpDepositApiView(APIView):
                 if loan and account_type == "capysafe":
                     loan_amount_repaid,credited_amount=capyBoostTransaction(loan,deposit_amount,transaction_fee)
                 #todo check if user has leaverage before top
-                TransactionHistory.objects.create(
+                transactions=TransactionHistory.objects.create(
                     **serializer.validated_data,
                     initiated_by=request.user,
                     transaction_type="top_up",
@@ -285,6 +305,24 @@ class TopUpDepositApiView(APIView):
                     transaction_id=generate_invoice_id(),
                     amount_settled= (credited_amount)
                       if loan else (net_amount)
+                )
+                email=transactions.initiated_by.email
+                context={
+                    "full_name":transactions.initiated_by.full_name,
+                    "customer_name":transactions.initiated_by.full_name,
+                    "customer_email":email,
+                    "amount":transactions.amount,
+                    "settle_amount":transactions.amount_settled,
+                    "date":transactions.created_at.date(),
+                    "transaction_id":transactions.transaction_id,
+                    "transaction_type":transactions.transaction_type
+                }
+                send_emails(
+                    email=request.user.get_admins(),
+                    context=context,
+                    subject="TopUp Deposit Transaction".upper(),
+                    template_name="deposit.html",
+                    pdf_file=transactions.receipt
                 )
                 res={
                     "status":"Success",
@@ -316,6 +354,8 @@ class LeaverageDepositApiView(APIView):
                 repayment_schedule=serializer.validated_data["repayment_schedule"]
                 payback_amount=serializer.validated_data.pop("pay_off_amount")
 
+                CapySafeAccount.objects.select_related("customer").get(customer=request.user)
+
                 repayment=RepaymentSchedule.objects.get(title__iexact=repayment_schedule)
                 #check if the user has any pending load
                 capyboost=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user)
@@ -338,6 +378,7 @@ class LeaverageDepositApiView(APIView):
                     account_status="ACTIVE",
                     # currency=transaction_detail.currency
                 )
+                #admin will update the safe account balance
                 loan,created=CapyBoostBalance.objects.update_or_create(
                     customer=request.user,
                     defaults={
@@ -346,12 +387,30 @@ class LeaverageDepositApiView(APIView):
                         "deposit_percentage":transaction_detail.deposit_percentage,
                         "inital_deposit":transaction_detail.inital_deposit,
                         "expire_date":transaction_detail.expire_date,
-                        "payoff_amount":payback_amount
+                        # "payoff_amount":payback_amount it wil be edited by admin
                     }
                 )
                 #update that user capboost balance
 
                 #Send Email Notification todo
+                email=transaction_detail.initiated_by.email
+                context={
+                    "full_name":transaction_detail.initiated_by.full_name,
+                    "customer_name":transaction_detail.initiated_by.full_name,
+                    "customer_email":email,
+                    "amount":transaction_detail.amount,
+                    "settle_amount":transaction_detail.amount_settled,
+                    "date":transaction_detail.created_at.date(),
+                    "transaction_id":transaction_detail.transaction_id,
+                    "transaction_type":transaction_detail.transaction_type
+                }
+                send_emails(
+                    email=request.user.get_admins(),
+                    context=context,
+                    subject="Leaverage Deposit Transaction".upper(),
+                    template_name="deposit.html",
+                    pdf_file=transaction_detail.receipt
+                )
 
                 res={
                     "status":"Success",
@@ -364,6 +423,14 @@ class LeaverageDepositApiView(APIView):
                 "status":"Failed",
                 "data":None,
                 "message":"Invalid RepaymentSchedule"
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+        except CapySafeAccount.DoesNotExist as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"THIS FEATURE IS MEANT FOR CAPYSAFE CUSTOMER"
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
@@ -435,10 +502,10 @@ class SellCapySafePortFollioApiView(APIView):
 
                 #check if he has a loan or not
                 loan=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user,expire_date__isnull=False)
-
                 if loan:
                     loan_amount_repaid,credited_amount=capyBoostTransaction(loan,amount,0.00) 
                     #0.00 show that no transaction fee deducted from the loan
+                    
                     
                 obj,created=Withdrawals.objects.get_or_create(
                     customer=request.user,
@@ -677,7 +744,7 @@ class WithdrawalAPiView(APIView):
                 sender_balance.save()
                 
                 #check if he has any leaverage
-                loan=CapyBoostBalance.objects.filter(customer=request.user,expire_date__isnull=False)
+                loan=CapyBoostBalance.objects.select_related("customer").filter(customer=request.user,expire_date__isnull=False)
                 if loan:
                     loan_amount_repaid,sent_amount=capyBoostTransaction(loan,amount,0.00)
 
@@ -698,7 +765,7 @@ class WithdrawalAPiView(APIView):
                 #if he has a leaverage the leaverage is remove first before it enters pending withdrawal
 
                 #log transaction
-                TransactionHistory.objects.create(
+                transactions=TransactionHistory.objects.create(
                     initiated_by=request.user,
                     transaction_id=generate_invoice_id(),
                     transaction_type="withdrawal",
@@ -710,12 +777,44 @@ class WithdrawalAPiView(APIView):
                     transaction_fee=0.97 #transaction fee
                     
                 )
+                email=transactions.initiated_by.email
+                context={
+                    "full_name":transactions.initiated_by.full_name,
+                    "customer_name":transactions.initiated_by.full_name,
+                    "customer_email":email,
+                    "amount":transactions.amount,
+                    "settle_amount":transactions.amount_settled,
+                    "date":transactions.created_at.date(),
+                    "transaction_id":transactions.transaction_id,
+                    "transaction_type":transactions.transaction_type
+                }
+                #after transaction log send emails
+                send_emails(
+                    email=[email],
+                    subject="Transaction Processing Update".upper(),
+                    context=context,
+                    template_name="transaction_update.html",
+                )
+                #send to admins
+                send_emails(
+                    email=request.user.get_admins(),
+                    subject="Request to Process withdrawal".upper(),
+                    context=context,
+                    template_name="process_transaction.html",
+                )
                 res={
                         "status":"Success",
                         "data":None,
                         "message":"Withdrawal Successful"
                     }
                 return Response(res,status=status.HTTP_201_CREATED)
+        except Withdrawals.DoesNotExist  as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"You cant withdrawal,sell your portfolio to withdrawal balance"
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
         except Exception  as e:
             res={
                 "status":"Failed",

@@ -53,7 +53,7 @@ class TransactionHistory(models.Model):
         url = re.sub(
             SPECIAL_CHARS_REGEX,
             "_",
-            "transaction/receipt/{filename}".format(filename=instance.user.first_name),
+            "transaction/receipt/{filename}".format(filename=instance.initiated_by.full_name),
         )
         return url
     id=models.UUIDField(default=uuid.uuid4,db_index=True,primary_key=True)

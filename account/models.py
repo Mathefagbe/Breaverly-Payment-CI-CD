@@ -119,6 +119,11 @@ class User(AbstractUser):
         role_permission=[perms.permission.permission for perms in role_perm]
         permission.extend(role_permission)
         return permission
+    
+    @classmethod
+    def get_admins(cls):
+        admins=cls.objects.prefetch_related("role").filter(role__role__in=["admin"])
+        return [admin.email for admin in admins]
 
 class Otp(models.Model):
     otp=models.CharField(max_length=4,null=False,blank=False)

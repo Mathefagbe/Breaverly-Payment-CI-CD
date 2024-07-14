@@ -29,12 +29,11 @@ class PDFBase64FileField(Base64FileField):
 
     def get_file_extension(self, filename, decoded_file):
         try:
-            PyPDF2.PdfFileReader(io.BytesIO(decoded_file))
-        except PyPDF2.utils.PdfReadError as e:
-            # logger.warning(e)
-            raise serializers.ValidationError(e)
+            PyPDF2.PdfReader(io.BytesIO(decoded_file))
+        except Exception as e:
+            raise RuntimeError(e)
         else:
-            return 'pdf'
+            return "pdf"
         
 class ContractDurationSerilaizer(serializers.ModelSerializer):
     class Meta:
@@ -69,7 +68,10 @@ class TransactionWriteSerializer(serializers.ModelSerializer):
                 "required":True
             }
         }
-
+    def validate(self, attrs):
+        if attrs["payment_gateway"].lower() == "bank_transfer" and not attrs.get("receipt",None):
+            raise RuntimeError("Please Upload Your Desposit Receipt")
+        return super().validate(attrs)
 #TopUp Deposit
 class TopUpTransactionWriteSerializer(serializers.ModelSerializer):
     receipt=PDFBase64FileField(required=False)
@@ -96,7 +98,7 @@ class TopUpTransactionWriteSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
-        if attrs["payment_gateway"].lower() == "bank_transfer":
+        if attrs["payment_gateway"].lower() == "bank_transfer" and not attrs.get("receipt",None):
             raise RuntimeError("Please Upload Your Desposit Receipt")
         return super().validate(attrs)
 
@@ -144,7 +146,7 @@ class LeaverageTransactionWriteSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
-        if attrs["payment_gateway"].lower() == "bank_transfer":
+        if attrs["payment_gateway"].lower() == "bank_transfer" and not attrs.get("receipt",None):
             raise RuntimeError("Please Upload Your Desposit Receipt")
         return super().validate(attrs)
     

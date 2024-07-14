@@ -6,6 +6,7 @@ from django.dispatch import receiver
 from django.db.models.signals import post_save
 from django.template.loader import render_to_string
 from beaverly_api.models import CapyMaxAccount,CapySafeAccount,CapyBoostBalance
+from beaverly_payment.models import TransactionHistory
 from django.db import transaction
 from itertools import chain
 from rest_framework.views import APIView
@@ -13,7 +14,7 @@ from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 from rest_framework.response import Response
 from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
-from beaverly_api.helper import generate_low_risk_id, generate_smartpro_id
+from beaverly_api.helper import generate_low_risk_id, generate_smartpro_id,check_kyc_validations
 from beaverly_api.serializer import (CapySafeAccountReadSerializer,CapyBoostBalanceReadSerializer,
     CapyMaxAccountReadSerializer,UpdateCustomeAccountBalanceSerializer,UpdateCustomeCapyBoostBalanceSerializer)
 from drf_yasg.openapi import IN_QUERY, Parameter
@@ -21,7 +22,7 @@ from beaverly_api import permissions as app_permissions
 from django.db.models import Q
 from lock.thread import lock
 import math
-
+from notifications.emails import send_emails
 INSUFFICIENT_PERMISSION="INSUFFICIENT_PERMISSION"
 PERMISSION_MESSAGE="PERMISSION DENIED ONLY ADMIN CAN HAVE ACCESS"
 
@@ -31,6 +32,9 @@ class CreateCapyMaxAccountApiView(APIView):
             #check if user has created before
             if CapyMaxAccount.objects.filter(customer=request.user).exists():
                 raise RuntimeError("You have already created CapyMax Account")
+            
+            #check if he has completed his kyc
+            check_kyc_validations(user=request.user)
             
             CapyMaxAccount.objects.create(
                     customer=request.user,
@@ -81,6 +85,8 @@ class CreateCapySafeAccountApiView(APIView):
             if CapySafeAccount.objects.filter(customer=request.user).exists():
                 raise RuntimeError("You have already created CapySafe Account")
             
+            check_kyc_validations(request.user)
+
             CapySafeAccount.objects.create(
                     customer=request.user,
                     customer_code=generate_low_risk_id()
@@ -280,6 +286,26 @@ class UpdateCustomerCapysafeBalanceApiView(APIView):
             serializer.is_valid(raise_exception=True)
             account.balance +=serializer.validated_data["balance"]
             account.save()
+            
+            transactions=TransactionHistory.objects.filter(initiated_by=account.customer)\
+                .only("status","transaction_id","transaction_type","created_at").latest()
+            context={
+                    "full_name":transactions.initiated_by.full_name,
+                    "customer_name":transactions.initiated_by.full_name,
+                    "customer_email":account.customer.email,
+                    "amount":serializer.validated_data["balance"],
+                    "date":account.updated_at.date(),
+                    "transaction_id":transactions.transaction_id,
+                    "transaction_type":transactions.transaction_type,
+                    "status":transactions.status
+            }
+            #send email to user
+            send_emails(
+                 email=[account.customer.email],
+                 subject="DEPOSIT SUCCESSFUL",
+                 context=context,
+                 template_name="success_transaction.html"
+            )
             res={
                 "status":"success",
                 "data":None,
@@ -353,6 +379,26 @@ class UpdateCustomerCapyMaxBalanceApiView(APIView):
             serializer.is_valid(raise_exception=True)
             account.balance +=serializer.validated_data["balance"]
             account.save()
+
+            transactions=TransactionHistory.objects.filter(initiated_by=account.customer)\
+                .only("status","transaction_id","transaction_type","created_at").latest()
+            context={
+                    "full_name":transactions.initiated_by.full_name,
+                    "customer_name":transactions.initiated_by.full_name,
+                    "customer_email":account.customer.email,
+                    "amount":serializer.validated_data["balance"],
+                    "date":account.updated_at.date(),
+                    "transaction_id":transactions.transaction_id,
+                    "transaction_type":transactions.transaction_type,
+                    "status":transactions.status
+            }
+            #send email to user
+            send_emails(
+                 email=[account.customer.email],
+                 subject="DEPOSIT SUCCESSFUL",
+                 context=context,
+                 template_name="success_transaction.html"
+            )
             res={
                 "status":"success",
                 "data":None,
@@ -426,6 +472,27 @@ class UpdateCustomerCapyBoostBalanceApiView(APIView):
             serializer.is_valid(raise_exception=True)
             account.payoff_amount +=serializer.validated_data["payoff_amount"]
             account.save()
+
+            #update TransactionHistory
+            transactions=TransactionHistory.objects.filter(initiated_by=account.customer)\
+                .only("status","transaction_id","transaction_type","created_at").latest()
+            context={
+                    "full_name":transactions.initiated_by.full_name,
+                    "customer_name":transactions.initiated_by.full_name,
+                    "customer_email":account.customer.email,
+                    "amount":serializer.validated_data["payoff_amount"],
+                    "date":account.updated_at.date(),
+                    "transaction_id":transactions.transaction_id,
+                    "transaction_type":transactions.transaction_type,
+                    "status":transactions.status
+            }
+            #send email to user
+            send_emails(
+                 email=[account.customer.email],
+                 subject="LEVERAGE SUCCESSFUL",
+                 context=context,
+                 template_name="success_transaction.html"
+            )
             res={
                 "status":"success",
                 "data":None,
@@ -471,7 +538,8 @@ class CapyBoostCustomersBalanceApiview(APIView):
             limit=int(request.GET.get("limit",10))
             account=CapyBoostBalance.objects.select_related("customer").order_by("-created_at").all()
             if search:
-                account=account.filter(Q(customer__email__icontains=search)|Q(customer_code=search)|Q(customer__first_name__icontains=search)|Q(customer__last_name__icontains=search))
+                account=account\
+                    .filter(Q(customer__email__icontains=search)|Q(customer_code=search)|Q(customer__first_name__icontains=search)|Q(customer__last_name__icontains=search))
 
             paginated=account[((page-1) * limit):((page-1) *limit)+limit]
             total_items=len(account)

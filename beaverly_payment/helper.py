@@ -52,3 +52,7 @@ def capyBoostTransaction(loan,deposit_amount,transaction_fee=0.98):
         credited_amount=balance # The balance is wat is been credited or sent out to the other user
         loan[0].save()
         return loan_amount_repaid,credited_amount
+    
+
+# def getAdmins():
+#     settings

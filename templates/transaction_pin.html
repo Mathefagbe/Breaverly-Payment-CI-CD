@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction PIN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .content {
+            font-size: 16px;
+        }
+        .pin {
+            font-size: 20px;
+            font-weight: bold;
+            color: #d9534f;
+            margin: 20px 0;
+        }
+        .important-info {
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Your Secure Transaction PIN</div>
+        <div class="content">
+            Dear {{full_name}},
+            <br><br>
+            We hope this email finds you well.
+            <br><br>
+            As part of our commitment to your security, we are providing you with a unique Transaction PIN. Please find your PIN below:
+            <br><br>
+            <div class="pin">Transaction PIN:{{pin}}</div>
+            <div class="important-info">
+                <strong>Important Information:</strong>
+                <ol>
+                    <li><strong>Confidentiality:</strong> Please keep this PIN secure and do not share it with anyone.</li>
+                    <li><strong>Usage:</strong> You will need this PIN for certain transactions to ensure they are secure.</li>
+                </ol>
+            </div>
+            If you have any questions or need further assistance, please reach out to our customer service team at [Customer Service Contact Information].
+            <br><br>
+            Thank you for choosing BEAVERLY. We are dedicated to providing you with the highest level of security and service.
+            <br><br>
+            Best regards,
+        </div>
+    </div>
+</body>
+</html>

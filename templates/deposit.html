@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposit Confirmation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .content {
+            font-size: 16px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Deposit Confirmation</div>
+        <div class="content">
+            Dear Admin,
+            <br><br>
+            We are pleased to inform you that your recent deposit has been successfully processed. Below are the details of your deposit transaction:
+            <br><br>
+            <strong>Deposit Details:</strong>
+            <ul>
+                <li><strong>Customer Name:</strong> {{customer_name}}</li>
+                <li><strong>Customer Name:</strong> {{customer_email}}</li>
+                <li><strong>Deposit Amount:</strong> {{amount}}</li>
+                <li><strong>Settle Amount:</strong> {{settle_amount}}</li>
+                <li><strong>Deposit Date:</strong> {{date}}</li>
+                <li><strong>Transaction ID:</strong> {{transaction_id}}</li>
+                <li><strong>Transaction Type:</strong> {{transaction_type}}</li>
+            </ul>
+            <br>
+            For your convenience, we have attached a PDF confirmation of this transaction.
+            <br><br>
+            Thank you for your trust in our services. If you have any questions or need further assistance, please do not hesitate to contact our customer service team at [Customer Service Contact Information].
+            <br><br>
+            Best regards,
+            <br><br>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Transaction Has Been Processed</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .content {
+            font-size: 16px;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Your Transaction Has Been Processed</div>
+        <div class="content">
+            <p>Dear {{full_name}},</p>
+            <br>
+            <p>We are writing to inform you that your recent transaction has been successfully processed by our team. Below are the details of your transaction:</p>
+            <ul>
+                <li><strong>Transaction ID:</strong> {{transaction_id}}</li>
+                <li><strong>Transaction Date:</strong> {{date}}</li>
+                <li><strong>Amount:</strong> {{amount}}</li>
+                <li><strong>Transaction Type:</strong> {{transaction_type}}</li>
+                <li><strong>Status:</strong>{{status}}</li>
+            </ul>
+            <p>If you have any questions or concerns regarding this transaction, please feel free to contact our customer support team at [Customer Support Email] or [Customer Support Phone Number].</p>
+            <br>
+            <p>Thank you for choosing our services.</p>
+            <br>
+            <p>Best regards,</p>
+        </div>
+    </div>
+</body>
+</html>
