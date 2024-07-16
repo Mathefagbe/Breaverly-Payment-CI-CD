@@ -495,9 +495,10 @@ class SellCapySafePortFollioApiView(APIView):
                 serializer.is_valid(raise_exception=True)
                 amount=serializer.validated_data["amount"]
                 account=CapySafeAccount.objects.get(customer=request.user)
-                if amount > account.balance:
+                new_amount = amount + Decimal(0.98)
+                if new_amount > account.balance:
                     raise RuntimeError("Insufficent Balance")
-                account.balance = account.balance - (amount + Decimal(0.98))
+                account.balance = account.balance - new_amount
                 account.save()
 
                 #check if he has a loan or not
@@ -565,9 +566,10 @@ class SellCapyMAxPortFollioApiView(APIView):
                 serializer.is_valid(raise_exception=True)
                 amount=serializer.validated_data["amount"]
                 account=CapyMaxAccount.objects.get(customer=request.user)
+                new_amount= amount+ Decimal(0.98)
                 if amount > account.balance:
                     raise RuntimeError("Insufficient Balance")
-                account.balance = account.balance - (amount+ Decimal(0.98))
+                account.balance = account.balance - new_amount
                 account.save()
 
                 #check if he has a loan or not

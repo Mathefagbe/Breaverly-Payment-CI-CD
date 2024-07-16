@@ -108,7 +108,7 @@ class KycDetailReadSerializer(serializers.ModelSerializer):
         fields="__all__"
          
 class KycImageReadSerializer(serializers.ModelSerializer):
-    user=UserReadSerializer(read_only=True)
+    user=UserReadSerializer()
     class Meta:
         model=KycDocumentImage
         fields="__all__"

@@ -513,35 +513,45 @@ class KycVerificationUploadedStepApiView(APIView):
     def get(self,request):
         try:
             photo_verification=KycDocumentImage.objects\
-                .select_related("user").filter(user=request.user).first()
+                .select_related("user").filter(user=request.user)
             selfie_verification=KycSelfie.objects\
-                .select_related("user").filter(user=request.user).first()
+                .select_related("user").filter(user=request.user)
             holding_photo_verification=LivePhotoKyc.objects\
-                .select_related("user").filter(user=request.user).first()
+                .select_related("user").filter(user=request.user)
             utility_bill_verification=KycUtilityBills.objects\
-            .select_related("user").filter(user=request.user).first()
+            .select_related("user").filter(user=request.user)
 
+            verifyArray=[photo_verification.count(),
+                            selfie_verification.count(),
+                            holding_photo_verification.count(),
+                            utility_bill_verification.count()]
+            verifylen=len(verifyArray)
+
+            verification_count=sum(verifyArray)
             data=[]
             
-            photo_data=KycImageReadSerializer(photo_verification,context={'request':request}).data
+            photo_data=KycImageReadSerializer(photo_verification.first(),context={'request':request}).data
             photo_data["step"]="Photo"
             data.append(photo_data)
 
-            selfie_data=KycSelfieReadSerializer(selfie_verification,context={'request':request}).data
+            selfie_data=KycSelfieReadSerializer(selfie_verification.first(),context={'request':request}).data
             selfie_data["step"]="Selfie"
             data.append(selfie_data)
 
-            holding_data=LivePhotoKycReadSerializer(holding_photo_verification,context={'request':request}).data
+            holding_data=LivePhotoKycReadSerializer(holding_photo_verification.first(),context={'request':request}).data
             holding_data["step"]="Holding_photo"
             data.append(holding_data)
 
-            utility_data=KycUtilityBillsReadSerializer(utility_bill_verification,context={'request':request}).data
+            utility_data=KycUtilityBillsReadSerializer(utility_bill_verification.first(),context={'request':request}).data
             utility_data["step"]="Utility Bill"
             data.append(utility_data)
-           
+ 
             res={
                 "status":"success",
-                "data":data,
+                "data":{
+                    "kyc":data,
+                    "verificationProgress":round(verification_count/verifylen,ndigits=2)
+                },
                 "message":"User Kyc Upload Fetch Successfully"
             }
             return Response(res,status=status.HTTP_200_OK)
