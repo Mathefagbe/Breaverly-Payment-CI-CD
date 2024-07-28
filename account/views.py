@@ -17,6 +17,7 @@ from rest_framework.parsers import JSONParser,FormParser,MultiPartParser
 from beaverly_api.models import Roles
 from django.db import transaction
 from .models import Pins
+from notifications.emails import send_emails
 
 class UserRegistrationView(APIView):
     authentication_classes=[]
@@ -154,8 +155,16 @@ class EmailVerificationApiView(APIView):
             otp=get_random_string(4,allowed_chars=string.digits)
 
             Otp.objects.filter(email=email).delete()
-            Otp.objects.create(email=email,otp=otp)
+            obj=Otp.objects.create(email=email,otp=otp)
             #send an otp to that user
+            send_emails(
+                subject='Confirm Your Email Address',
+                email=obj.email,
+                template_name='account/email_confirmation.html',
+                context={
+                    "otp":obj.otp
+                }
+            )
             res={
                 "status":"success",
                 "data":None,
@@ -177,17 +186,17 @@ class VerifyOtpCodeAPiView(APIView):
     @swagger_auto_schema(
             request_body= VerifiyOtpSerializer
     )
-    def post(self,request):
+    def get(self,request):
         try:
             serializer=VerifiyOtpSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             #get the email and otp
             email=serializer.validated_data["email"]
             otp=serializer.validated_data["otp"]
-            data=Otp.objects.filter(email=email,otp=otp).get()
+            data=Otp.objects.get(email=email,otp=otp)
             #Check if code has not expired
             res={}
-            if data.expire_at_at >= timezone.now():
+            if data.expire_at >= timezone.now():
                 raise RuntimeError("Otp code has expired please resend otp") 
             #-----------------
             res["status"]="success"
@@ -260,12 +269,30 @@ class ChangePinSerializerApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
-
 #transactionPin
 class TransactionOtpPinApiView(APIView):
     def post(self,request):
         try:
-            pass
+            user=request.user
+            email=user.email
+            otp=get_random_string(4,allowed_chars=string.digits)
+            Otp.objects.filter(email=email).delete()
+            obj=Otp.objects.create(email=email,otp=otp)
+            send_emails(
+                subject='Confirm Your Email Address',
+                email=obj.email,
+                template_name='account/email_confirmation.html',
+                context={
+                    "full_name":user.full_name,
+                    "pin":obj.otp,
+                }
+            )
+            res={
+                "status":"success",
+                "data":None,
+                "message":"Pin Sent To {}".format(email)
+            }
+            return Response(res,status=status.HTTP_200_OK)
         except Exception as e:
             res={
                 "status":"Failed",
@@ -274,10 +301,27 @@ class TransactionOtpPinApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
 
-    def get(self,request):
+class VerifyTransactionPinApiView(APIView):
+    def get(self,request,pin):
         try:
-            pass
-
+            email=request.user.email
+            data=Otp.objects.get(email=email,otp=pin)
+            #Check if code has not expired
+            res={}
+            if data.expire_at >= timezone.now():
+                raise RuntimeError("Pin has expired please resend otp") 
+            #-----------------
+            res["status"]="success"
+            res["data"]=None
+            res["message"]="Pin Verification Successfull"
+            return Response(res,status=status.HTTP_200_OK)  
+        except Otp.DoesNotExist:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":"Invalid Pin"
+            }
+            return Response(res,status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             res={
                 "status":"Failed",
@@ -286,7 +330,6 @@ class TransactionOtpPinApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
-
 class HideBalanceApiView(APIView):
     def put(self,request):
         try:

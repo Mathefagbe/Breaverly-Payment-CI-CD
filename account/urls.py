@@ -8,7 +8,9 @@ from .views import (
                     AdminUserRegistrationView,
                     InputPinSerializerApiView,
                     ChangePinSerializerApiView,
-                    HideBalanceApiView
+                    HideBalanceApiView,
+                    TransactionOtpPinApiView,
+                    VerifyTransactionPinApiView
                     )
 urlpatterns = [
     url("auth/register/",UserRegistrationView.as_view()),
@@ -20,4 +22,6 @@ urlpatterns = [
     url("set/login/pin/",InputPinSerializerApiView.as_view()),
     url("update/login/pin/",ChangePinSerializerApiView.as_view()),
     url("hide-unhide/balance/",HideBalanceApiView.as_view()),
+    url("send/pin/",TransactionOtpPinApiView.as_view()),
+    url("verify/send/pin/<str:pin>/",VerifyTransactionPinApiView.as_view()),
 ]
