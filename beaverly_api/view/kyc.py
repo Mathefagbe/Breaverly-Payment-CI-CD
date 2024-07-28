@@ -9,6 +9,7 @@ from beaverly_api.serializer import (
     LivePhotoKycReadSerializer,
     UploadKycFileSerializer,
     UpdateKycStatusSerializer,
+    VerificationSerializer
 
 )
 from itertools import chain
@@ -19,7 +20,7 @@ from rest_framework import status
 from drf_yasg.utils import swagger_auto_schema
 # Create your views here.
 from beaverly_api.serializer import ImageUploadSerializer
-from beaverly_api.models import KycDetails,KycDocumentImage,KycSelfie,KycUtilityBills,LivePhotoKyc
+from beaverly_api.models import KycDetails,KycDocumentImage,KycSelfie,KycUtilityBills,LivePhotoKyc,Verifications
 from beaverly_api import permissions as app_permissions
 from drf_yasg.openapi import IN_QUERY, Parameter
 import math
@@ -562,3 +563,73 @@ class KycVerificationUploadedStepApiView(APIView):
                 "message":str(e)
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+class  CustomerVerificationAPiView(APIView):
+
+    def get(self,request):
+        try:
+            verifications=Verifications.objects.select_related("customer").filter(customer=request.user).first()
+            res={
+                "status":"success",
+                "data":VerificationSerializer(verifications).data,
+                "message":"User Verification Fetch Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST) 
+        
+class VerificationsApiView(APIView):
+    @swagger_auto_schema(
+            manual_parameters=[
+                Parameter("page",IN_QUERY,type="int",required=False),
+                Parameter("limit",IN_QUERY,type="int",required=False),
+                Parameter("search",IN_QUERY,type="str",required=False,
+                          description="admin can search with first_name,email,last_name"),
+            ]
+    )
+    def get(self,request):
+        try:
+            #check Permission
+            page=int(request.GET.get("page",1))
+            limit=int(request.GET.get("limit",10))
+            search=request.GET.get("search",None)
+            if app_permissions.CAN_VERIFY_CUSTOMER_KYC not in request.user.get_permission:
+                    res={
+                        "status":"Failed",
+                        "data":None,
+                        "message":PERMISSION_MESSAGE
+                    }
+                    return Response(res,status=status.HTTP_403_FORBIDDEN)
+            verifications=Verifications.objects.select_related("customer").all()
+            if search:
+                verifications=verifications.filter(Q(customer__email__icontains=search)|Q(customer__first_name=search)|Q(customer__last_name=search))
+            paginated=verifications[((page-1) * limit):((page-1) *limit)+limit]
+            total_items=len(verifications)
+            res={
+                "status":"success",
+                "data":VerificationSerializer(paginated,many=True,context={'request':request}).data,
+                "meta_data":{
+                    "total_page":math.ceil(total_items / limit),
+                    "current_page":page,
+                    "per_page":limit,
+                    "total":total_items
+                },
+                "message":"User Verification Fetch Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST) 
+
+#verify email,
+
+#verify phoneNumber

@@ -166,5 +166,13 @@ class Bank(models.Model):
     country=models.CharField(max_length=100,null=True)
     active=models.BooleanField(default=False)
 
+class Verifications(models.Model):
+    customer=models.OneToOneField(settings.AUTH_USER_MODEL,on_delete=models.CASCADE,related_name="userVerification")
+    hasVerifyPhoneNumber=models.BooleanField(default=False)
+    hasVerifyKyc=models.BooleanField(default=False)
+    hasVerifyEmail=models.BooleanField(default=False)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+
 
 #loginPin has to be encypted

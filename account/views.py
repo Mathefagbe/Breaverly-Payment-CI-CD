@@ -233,7 +233,6 @@ class InputPinSerializerApiView(APIView):
             }
             return Response(res,status=status.HTTP_400_BAD_REQUEST)
         
-
 class ChangePinSerializerApiView(APIView):
 
     @swagger_auto_schema(
@@ -251,6 +250,57 @@ class ChangePinSerializerApiView(APIView):
                 "status":"success",
                 "data":None,
                 "message":"Login Pin Updated Successfully"
+            }
+            return Response(res,status=status.HTTP_200_OK)
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+
+#transactionPin
+class TransactionOtpPinApiView(APIView):
+    def post(self,request):
+        try:
+            pass
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self,request):
+        try:
+            pass
+
+        except Exception as e:
+            res={
+                "status":"Failed",
+                "data":None,
+                "message":str(e)
+            }
+            return Response(res,status=status.HTTP_400_BAD_REQUEST)
+        
+
+class HideBalanceApiView(APIView):
+    def put(self,request):
+        try:
+            user=request.user
+            if user.hideBalance:
+                user.hideBalance=False
+                user.save()
+            else:
+                user.hideBalance=True
+                user.save()
+            res={
+                "status":"Success",
+                "data":None,
+                "message":""
             }
             return Response(res,status=status.HTTP_200_OK)
         except Exception as e:

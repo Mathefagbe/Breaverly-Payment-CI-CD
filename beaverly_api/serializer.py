@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from .models import (KycDetails,KycDocumentImage,KycSelfie,
                      KycUtilityBills,LivePhotoKyc,Bank,CapyMaxAccount,CapySafeAccount,
-                     CapyBoostBalance
+                     CapyBoostBalance,Verifications
                      )
 from drf_extra_fields.fields import Base64ImageField,Base64FileField
 from beaverly_payment.models import Withdrawals
@@ -158,7 +158,6 @@ class CapySafeAccountReadSerializer(serializers.ModelSerializer):
         net=(obj.balance + capymax_balance + withdrawal_balance) - capyboost_balance
         return net
 
-
 class CapyMaxAccountReadSerializer(serializers.ModelSerializer):
     customer=UserReadSerializer()
     networth=serializers.SerializerMethodField()
@@ -196,3 +195,14 @@ class UpdateCustomeAccountBalanceSerializer(serializers.Serializer):
 
 class UpdateCustomeCapyBoostBalanceSerializer(serializers.Serializer):
     payoff_amount=serializers.DecimalField(max_digits=10,decimal_places=2)
+
+class VerificationSerializer(serializers.ModelSerializer):
+    customer=UserReadSerializer()
+    class Meta:
+        model=Verifications
+        fields=[
+            "customer",
+            "hasVerifyPhoneNumber",
+            "hasVerifyKyc",
+            "hasVerifyEmail"
+        ]

@@ -89,6 +89,7 @@ class User(AbstractUser):
     account_name=models.CharField(max_length=100,null=True,blank=True)
     bank_name=models.CharField(max_length=100,null=True,blank=True)
     has_verified_email=models.BooleanField(default=False)
+    hide_balance=models.BooleanField(default=False)
     account_number=models.CharField(max_length=15,null=True,blank=True)
     created_at=models.DateField(auto_now=True)
     registation_date=models.DateField(auto_now=datetime.now().date)
