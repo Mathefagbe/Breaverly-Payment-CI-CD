@@ -186,7 +186,7 @@ class VerifyOtpCodeAPiView(APIView):
     @swagger_auto_schema(
             request_body= VerifiyOtpSerializer
     )
-    def get(self,request):
+    def post(self,request):
         try:
             serializer=VerifiyOtpSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)

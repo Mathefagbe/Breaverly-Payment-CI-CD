@@ -1,0 +1,131 @@
+# version: '3.8'
+services:
+#web service app
+  app:
+    build: 
+      context: .
+    image: beaverly_backend 
+    container_name: beaverly_backend_container
+    #mount
+    volumes:
+      - ./:/app
+      - media_volume:/app/mediafiles/
+      - static_volume:/app/staticfiles/
+      # - ./staticfiles:/app/staticfiles
+    expose:
+      - 8000
+    command: sh -c "python manage.py makemigrations 
+              && python manage.py migrate 
+              && python manage.py collectstatic --noinput
+              && gunicorn beaverly_app.wsgi:application -b 0.0.0.0:8000"
+    restart: always
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      
+      # - CELERY_BROKER=${CELERY_BROKER}
+      # - CELERY_BACKEND=${CELERY_BACKEND}
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512M
+    # develop:
+    #   watch:
+    #     - action: sync
+    #       path: ./web
+    #       target: /src/web
+    #       ignore:
+    #         - node_modules/
+    #     - action: rebuild
+    #       path: package.json
+
+    # depends_on:
+    #   - db
+    #   - redis
+
+# #postgress db
+#   db:
+#     image: postgres:16-alpine
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     environment:
+#       - POSTGRES_DB=${POSTGRES_DB}
+#       - POSTGRES_USER=${POSTGRES_USER}
+#       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+#     ports:
+#       - 5000:5000
+#     expose:
+#       - 5000
+
+#     container_name: postgres_db
+#     restart: always
+
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 512M
+
+  # celery:
+  #   build: .
+  #   image: celery_app
+  #   container_name: celery_container
+  #   volumes:
+  #     - ./:/app
+  #   command: "celery -A djangotest worker --loglevel=INFO"
+  #   restart: always
+  #   ports:
+  #     - 8080:8080
+  #   environment:
+  #     - SECRET_KEY=${SECRET_KEY}
+  #     - POSTGRES_DB=${POSTGRES_DB}
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - CELERY_BROKER=${CELERY_BROKER}
+  #     - CELERY_BACKEND=${CELERY_BACKEND}
+
+  #   depends_on:
+  #     - redis
+  #     - app
+    
+  # redis:
+  #   image: redis:alpine
+  #   container_name: redis_container
+  #   restart: always
+  #   volumes:
+  #     - redis_data:/data
+  #   expose:
+  #     - 6379
+  #   ports:
+  #     - 6379:6379
+
+  nginx:
+    build: ./nginx
+    container_name: nginx_container
+    image: nginx
+    volumes:
+      - ./nginx/conf.d/:/etc/nginx/conf.d
+      - static_volume:/app/staticfiles/
+      - media_volume:/app/mediafiles/
+    ports:
+      - 80:80
+    restart: always
+    depends_on:
+      - app
+      # - celery
+
+
+volumes:
+  # redis_data:
+  # postgres_data:
+  static_volume:
+  media_volume:
+
+
+
+    
+
+    

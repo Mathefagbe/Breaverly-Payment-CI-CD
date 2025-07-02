@@ -9,6 +9,7 @@ from .models import (KycDetails,KycDocumentImage,KycSelfie,
 from drf_extra_fields.fields import Base64ImageField,Base64FileField
 from beaverly_payment.models import Withdrawals
 from decimal import Decimal
+
 class Base64ImagesField(Base64ImageField):
     class Meta:
         swagger_schema_fields = {

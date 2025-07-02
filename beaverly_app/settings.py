@@ -23,10 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-lnkmdvlk#e2oz(qy*p@)%bp&d80n*jmpbgc)=ykyzk9j18@e8-'
+SECRET_KEY = config("SECRET_KEY")
+# 'django-insecure-lnkmdvlk#e2oz(qy*p@)%bp&d80n*jmpbgc)=ykyzk9j18@e8-'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True if config("DEBUG") == "True" else False
 
 ALLOWED_HOSTS = ["localhost"]
 
@@ -87,16 +88,28 @@ WSGI_APPLICATION = 'beaverly_app.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
-DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": "beaverly_db",
-            "USER": "postgres",
-            "PASSWORD": "test",
-            "HOST": "localhost",
-            "PORT": 5432,
-        }
-}
+if DEBUG:
+    DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": "beaverly_db",
+                "USER": "postgres",
+                "PASSWORD": "test",
+                "HOST": "localhost",
+                "PORT": 5432,
+            }
+    }
+else:
+    DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": config("POSTGRES_DB"),
+                "USER": config("POSTGRES_USER"),
+                "PASSWORD": config("POSTGRES_PASSWORD"),
+                "HOST": config("POSTGRES_HOST"),
+                "PORT": 5432,
+            }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
