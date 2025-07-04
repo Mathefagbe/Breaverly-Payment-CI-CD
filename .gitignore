@@ -1,5 +1,3 @@
 venv
 .env
 media
-.compose.yaml
-nginx
