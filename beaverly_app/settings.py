@@ -27,10 +27,9 @@ SECRET_KEY = config("SECRET_KEY")
 # 'django-insecure-lnkmdvlk#e2oz(qy*p@)%bp&d80n*jmpbgc)=ykyzk9j18@e8-'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True if config("DEBUG") == "True" else False
+DEBUG = True if config("APP_DEBUG") == "True" else False
 
 ALLOWED_HOSTS = ["localhost"]
-
 
 # Application definition
 
@@ -78,7 +77,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'beaverly_app.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
@@ -88,6 +86,7 @@ WSGI_APPLICATION = 'beaverly_app.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
 if DEBUG:
     DATABASES = {
             "default": {
@@ -96,11 +95,11 @@ if DEBUG:
                 # "USER": "postgres",
                 # "PASSWORD": "test",
                 # "HOST": "localhost",
-                "NAME": config("POSTGRES_DB"),
-                "USER": config("POSTGRES_USER"),
-                "PASSWORD": config("POSTGRES_PASSWORD"),
-                "HOST": config("POSTGRES_HOST"),
-                "PORT": 5432,
+                'NAME': os.environ.get('APP_POSTGRES_DB'),  # must not be None
+                'USER': os.environ.get('APP_POSTGRES_USER'),
+                'PASSWORD': os.environ.get('APP_POSTGRES_PASSWORD'),
+                'HOST': os.environ.get('APP_POSTGRES_HOST', 'db'),
+                'PORT': os.environ.get('APP_POSTGRES_PORT', '5432'),
             }
     }
 else:

@@ -1,7 +1,7 @@
 # .dockerignore
-env/
 .venv/
 .folio-env/
 folio-env/
 /staticfiles/
-.env
+# .env
+venv/
