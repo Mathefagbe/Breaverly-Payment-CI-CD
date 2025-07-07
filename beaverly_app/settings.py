@@ -99,7 +99,7 @@ if DEBUG:
 
             }
     }
-elif not DEBUG and os.environ.get("LIVE",0) == 1:
+else:
     DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",
