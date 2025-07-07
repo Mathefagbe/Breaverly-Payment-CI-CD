@@ -99,7 +99,7 @@ if DEBUG:
 
             }
     }
-elif DEBUG and os.environ.get("LIVE",0) ==1:
+elif not DEBUG and os.environ.get("LIVE",0) == 1:
     DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",
@@ -114,17 +114,17 @@ elif DEBUG and os.environ.get("LIVE",0) ==1:
                 'PORT': os.environ.get('APP_POSTGRES_PORT', '5432'),
             }
     }
-else:
-    DATABASES = {
-            "default": {
-                "ENGINE": "django.db.backends.postgresql",
-                "NAME": config("POSTGRES_DB"),
-                "USER": config("POSTGRES_USER"),
-                "PASSWORD": config("POSTGRES_PASSWORD"),
-                "HOST": config("POSTGRES_HOST"),
-                "PORT": 5432,
-            }
-    }
+# else:
+#     DATABASES = {
+#             "default": {
+#                 "ENGINE": "django.db.backends.postgresql",
+#                 "NAME": config("POSTGRES_DB"),
+#                 "USER": config("POSTGRES_USER"),
+#                 "PASSWORD": config("POSTGRES_PASSWORD"),
+#                 "HOST": config("POSTGRES_HOST"),
+#                 "PORT": 5432,
+#             }
+#     }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
