@@ -91,6 +91,18 @@ if DEBUG:
     DATABASES = {
             "default": {
                 "ENGINE": "django.db.backends.postgresql",
+                'NAME': 'beaverly_db',
+                'USER': 'postgres',
+                'PASSWORD': 'test',
+                'HOST': 'localhost',
+                'PORT':5432
+
+            }
+    }
+elif DEBUG and os.environ.get("LIVE",0) ==1:
+    DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
                 # "NAME": "beaverly_db",
                 # "USER": "postgres",
                 # "PASSWORD": "test",

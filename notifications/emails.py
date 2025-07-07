@@ -14,9 +14,10 @@ def send_emails(email,subject,context,template_name,pdf_file=None,email_for="cus
             message = render_to_string(template_name,context=context)
             text_content = strip_tags(message)
             from_email = settings.EMAIL_HOST_USER
+            print(email)
             to_email = email
             # send_mail(subject, text_content, from_email, [to_email], fail_silently=False)
-            msg = EmailMultiAlternatives(subject, text_content, from_email, to_email)
+            msg = EmailMultiAlternatives(subject, text_content, from_email, [to_email])
             msg.attach_alternative(message, "text/html")
 
             if pdf_file:
@@ -25,5 +26,5 @@ def send_emails(email,subject,context,template_name,pdf_file=None,email_for="cus
             msg.send()
         except Exception as e:
              print(e)
-             raise RuntimeError("Error in sending email")
+             raise RuntimeError("Error in sending email {}".format(e))
              return None
