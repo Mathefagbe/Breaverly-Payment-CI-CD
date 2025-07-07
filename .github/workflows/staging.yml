@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      DEBUG: ${{ secrets.DEBUG }}
+      APP_DEBUG: ${{ secrets.DEBUG }}
       APP_POSTGRES_DB: ${{ secrets.DB_NAME }}
       APP_POSTGRES_USER: ${{ secrets.DB_USER }}
       APP_POSTGRES_PASSWORD: ${{ secrets.DB_PASS }}
